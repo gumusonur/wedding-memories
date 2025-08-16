@@ -15,7 +15,7 @@ import {
 import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload as UploadIcon, X, Check, Trash2, Edit } from "lucide-react";
+import { Upload as UploadIcon, X, Check, Trash2, Edit, Plus, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -230,7 +230,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       if (duplicateFiles.length === 0) {
         toast({
           title: "Photos added",
-          description: `${newFiles.length} photo${newFiles.length > 1 ? 's' : ''} ready for upload`,
+          description: `${newFiles.length} photo${newFiles.length > 1 ? 's' : ''} ready to add`,
         });
       } else {
         toast({
@@ -283,8 +283,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f
           ));
           toast({
-            title: "Upload successful!",
-            description: `${uploadFile.file.name} has been uploaded.`,
+            title: "Photo added successfully!",
+            description: `${uploadFile.file.name} has been added to the gallery.`,
           });
         } else {
           throw new Error(data.error || 'Upload failed');
@@ -300,8 +300,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       ));
       toast({
         variant: "destructive",
-        title: "Upload failed",
-        description: `Failed to upload ${uploadFile.file.name}`,
+        title: "Failed to add photo",
+        description: `Failed to add ${uploadFile.file.name}`,
       });
     }
   };
@@ -312,7 +312,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       toast({
         variant: "destructive",
         title: "Name required",
-        description: "Please enter your name before uploading.",
+        description: "Please enter your name before adding photos.",
       });
       return;
     }
@@ -336,7 +336,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     
     if (successCount > 0) {
       toast({
-        title: "Upload complete!",
+        title: "Photos added!",
         description: "Loading new photos...",
       });
       
@@ -391,11 +391,19 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     <>
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerTrigger asChild>
-          <Button>Upload Photos</Button>
+          <Button 
+            size="lg"
+            className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
+                       h-16 px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium
+                       md:h-auto md:w-auto md:rounded-md md:px-4 md:py-2"
+          >
+            <Camera className="h-5 w-5 md:h-4 md:w-4" />
+            <span>Add Photos</span>
+          </Button>
         </DrawerTrigger>
         <DrawerContent className="max-h-[80vh]">
           <DrawerHeader>
-            <DrawerTitle>Upload Photos</DrawerTitle>
+            <DrawerTitle>Add Photos</DrawerTitle>
             <DrawerDescription>
               Select multiple photos to share with Saygin & Dilan
             </DrawerDescription>
@@ -405,7 +413,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             {/* Guest name display with edit option */}
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Uploading as:</p>
+                <p className="text-sm text-muted-foreground">Adding photos as:</p>
                 <p className="font-medium">{guestName || "Not set"}</p>
               </div>
               <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
@@ -419,7 +427,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   <DialogHeader>
                     <DialogTitle>Change Your Name</DialogTitle>
                     <DialogDescription>
-                      Update the name that will be associated with your uploaded photos.
+                      Update the name that will be associated with your photos.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -543,7 +551,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Remove Photo</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to remove this photo from the upload list?
+                    Are you sure you want to remove this photo from the list?
                     This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -572,8 +580,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
               >
                 {isUploading 
-                  ? `Uploading... (${uploadingCount})`
-                  : `Upload ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`
+                  ? `Adding... (${uploadingCount})`
+                  : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`
                 }
               </Button>
             </div>
