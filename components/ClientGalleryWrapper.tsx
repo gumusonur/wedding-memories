@@ -23,12 +23,16 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
           </h1>
           <div className="flex items-center gap-2 order-2 sm:order-none">
             <ModeToggle />
-            <Upload currentGuestName={guestName} />
           </div>
         </header>
 
         {children}
       </main>
+
+      {/* Floating Upload Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Upload currentGuestName={guestName} />
+      </div>
     </>
   );
 }
