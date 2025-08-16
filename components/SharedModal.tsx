@@ -64,7 +64,7 @@ export default function SharedModal({
       >
         {/* Main image */}
         <div className="w-full h-full flex items-center justify-center">
-          <div className="relative max-w-full max-h-[90vh] flex items-center justify-center">
+          <div className="relative w-full max-w-full h-[90vh] overflow-hidden flex items-center justify-center">
             <AnimatePresence initial={false} custom={direction}>
               <motion.div
                 key={index}
@@ -73,7 +73,7 @@ export default function SharedModal({
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="relative"
+                className="absolute inset-0 flex items-center justify-center"
               >
                 <Image
                   src={`https://res.cloudinary.com/${
@@ -86,7 +86,7 @@ export default function SharedModal({
                   priority
                   alt="Wedding photo"
                   onLoad={() => setLoaded(true)}
-                  className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                 />
               </motion.div>
             </AnimatePresence>
