@@ -61,6 +61,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   // Load guest name from localStorage or props on mount
@@ -247,9 +248,34 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     }
 
     const pendingFiles = files.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
     
+    setIsUploading(true);
+    
+    let successCount = 0;
     for (const file of pendingFiles) {
-      await uploadFile(file);
+      try {
+        await uploadFile(file);
+        successCount++;
+      } catch (error) {
+        // Error handling is already done in uploadFile
+      }
+    }
+    
+    setIsUploading(false);
+    
+    if (successCount > 0) {
+      toast({
+        title: "Upload complete!",
+        description: "Loading new photos...",
+      });
+      
+      // Refetch photos instead of refreshing the page
+      setTimeout(() => {
+        if ((window as any).refetchPhotos) {
+          (window as any).refetchPhotos();
+        }
+      }, 1000);
     }
   };
 
@@ -465,9 +491,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               </DrawerClose>
               <Button 
                 onClick={handleUploadAll}
-                disabled={!hasFiles || pendingCount === 0 || uploadingCount > 0 || !guestName.trim()}
+                disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
               >
-                {uploadingCount > 0 
+                {isUploading 
                   ? `Uploading... (${uploadingCount})`
                   : `Upload ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`
                 }
