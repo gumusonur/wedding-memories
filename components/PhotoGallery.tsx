@@ -51,7 +51,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
           </div>
         </div>
       )}
-      {images.map(({ id, public_id, format, blurDataUrl, guestName }) => (
+      {images.map(({ id, public_id, format, blurDataUrl, guestName, uploadDate }) => (
         <div
           key={id}
           onClick={() => router.push(`/?photoId=${id}`, { scroll: false })}
@@ -71,11 +71,22 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
               (max-width: 1536px) 33vw,
               25vw"
           />
-          {guestName && (
+          {(guestName || uploadDate) && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg">
-              <p className="text-white text-xs font-medium p-2 text-center">
-                Shared by {guestName}
-              </p>
+              <div className="text-white text-xs font-medium p-2 text-center">
+                {guestName && <p>Shared by {guestName}</p>}
+                {uploadDate && (
+                  <p className="text-white/80">
+                    {new Date(uploadDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
