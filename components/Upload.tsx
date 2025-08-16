@@ -47,6 +47,7 @@ interface UploadFile {
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   thumbnail?: string;
+  hash?: string;
 }
 
 interface UploadProps {
@@ -84,6 +85,26 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     });
   };
 
+  const createFileHash = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const isDuplicateFile = (newFile: File, newHash: string): boolean => {
+    return files.some(existingFile => {
+      // Check by hash (most reliable)
+      if (existingFile.hash === newHash) return true;
+      
+      // Check by name and size as fallback
+      if (existingFile.file.name === newFile.name && 
+          existingFile.file.size === newFile.size) return true;
+      
+      return false;
+    });
+  };
+
   const handleFileSelect = async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
     
@@ -102,19 +123,51 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     if (validFiles.length === 0) return;
     
     const newFiles: UploadFile[] = [];
+    const duplicateFiles: string[] = [];
     
     for (const file of validFiles) {
+      const hash = await createFileHash(file);
+      
+      if (isDuplicateFile(file, hash)) {
+        duplicateFiles.push(file.name);
+        continue;
+      }
+      
       const thumbnail = await createThumbnail(file);
       newFiles.push({
         file,
         id: Math.random().toString(36).substr(2, 9),
         progress: 0,
         status: 'pending',
-        thumbnail
+        thumbnail,
+        hash
       });
     }
     
-    setFiles(prev => [...prev, ...newFiles]);
+    // Show duplicate notification if any duplicates found
+    if (duplicateFiles.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Duplicate photos detected",
+        description: `${duplicateFiles.length} photo${duplicateFiles.length > 1 ? 's' : ''} already selected: ${duplicateFiles.slice(0, 2).join(', ')}${duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : ''}`,
+      });
+    }
+    
+    if (newFiles.length > 0) {
+      setFiles(prev => [...prev, ...newFiles]);
+      
+      if (duplicateFiles.length === 0) {
+        toast({
+          title: "Photos added",
+          description: `${newFiles.length} photo${newFiles.length > 1 ? 's' : ''} ready for upload`,
+        });
+      } else {
+        toast({
+          title: "New photos added",
+          description: `${newFiles.length} new photo${newFiles.length > 1 ? 's' : ''} added (${duplicateFiles.length} duplicate${duplicateFiles.length > 1 ? 's' : ''} skipped)`,
+        });
+      }
+    }
   };
 
   const removeFile = (id: string) => {
