@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
   Drawer,
@@ -38,7 +38,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useEffect } from "react";
 
 interface UploadFile {
   file: File;
@@ -62,6 +61,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
   const { toast } = useToast();
 
   // Load guest name from localStorage or props on mount
@@ -70,6 +70,20 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setGuestName(storedName);
     setNewGuestName(storedName);
   }, [currentGuestName]);
+
+  // Detect screen size for responsive UI
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024); // lg breakpoint
+    };
+
+    // Check on mount
+    checkScreenSize();
+
+    // Listen for resize events
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const isValidImageFile = (file: File): boolean => {
     try {
@@ -387,104 +401,109 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const pendingCount = files.filter(f => f.status === 'pending').length;
   const uploadingCount = files.filter(f => f.status === 'uploading').length;
 
-  return (
-    <>
-      <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerTrigger asChild>
-          <Button 
-            size="lg"
-            className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
-                       h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
-                       md:h-10 md:px-4 md:py-2 md:rounded-lg md:gap-2"
-          >
-            <Camera className="h-5 w-5 md:h-4 md:w-4" />
-            <span className="hidden xs:inline">Add Photos</span>
-            <span className="xs:hidden">Add</span>
-          </Button>
-        </DrawerTrigger>
-        <DrawerContent className="max-h-[80vh]">
-          <DrawerHeader>
-            <DrawerTitle>Share Wedding Memories</DrawerTitle>
-            <DrawerDescription>
-              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
-            </DrawerDescription>
-          </DrawerHeader>
-
-          <div className="grid gap-4 p-4 overflow-auto">
-            {/* Guest name display with edit option */}
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Adding photos as:</p>
-                <p className="font-medium">{guestName || "Not set"}</p>
-              </div>
-              <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => setNewGuestName(guestName)}>
-                    <Edit className="w-4 h-4 mr-1" />
-                    Change
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Change Your Name</DialogTitle>
-                    <DialogDescription>
-                      Update the name that will be associated with your photos.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      type="text"
-                      placeholder="Enter your name"
-                      value={newGuestName}
-                      onChange={(e) => setNewGuestName(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsEditingName(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleNameChange}>
-                      Update Name
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-            
-            <div className="space-y-2">
+  // Shared content component for both Dialog and Drawer
+  const UploadContent = () => (
+    <div className="grid gap-4 p-4 overflow-auto max-h-[60vh] lg:max-h-[70vh]">
+      {/* Compact guest name display */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          Adding as: <span className="font-medium text-foreground">{guestName || "Not set"}</span>
+        </span>
+        <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => setNewGuestName(guestName)} className="h-6 px-2 text-xs">
+              <Edit className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change Your Name</DialogTitle>
+              <DialogDescription>
+                Update the name that will be associated with your photos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
               <Input
-                type="file"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                onChange={(e) => handleFileSelect(e.target.files)}
-                className="cursor-pointer"
-                key={files.length} // Reset input when files change
+                type="text"
+                placeholder="Enter your name"
+                value={newGuestName}
+                onChange={(e) => setNewGuestName(e.target.value)}
+                autoFocus
               />
-              <p className="text-sm text-muted-foreground">
-                Select multiple image files (JPG, PNG, GIF, WebP only)
-              </p>
             </div>
-
-            {hasFiles && (
-              <div className="space-y-3 max-h-80 overflow-auto">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditingName(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleNameChange}>
+                Update Name
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      {/* Smart drag & drop area that adapts to content */}
+      <div className="space-y-3">
+        <div className="relative">
+          <div className={cn(
+            "border-2 border-dashed rounded-lg transition-colors min-h-[120px] relative",
+            !hasFiles && "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/25 p-6 text-center",
+            hasFiles && "border-primary/30 bg-muted/10 p-4"
+          )}>
+            {/* File input overlay - only covers the header area when files are present */}
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={(e) => handleFileSelect(e.target.files)}
+              className={cn(
+                "absolute opacity-0 cursor-pointer z-10",
+                !hasFiles && "inset-0 w-full h-full",
+                hasFiles && "top-0 left-0 right-0 h-16 w-full"
+              )}
+              key={files.length} // Reset input when files change
+            />
+            
+            {!hasFiles ? (
+              // Empty state - show upload prompt
+              <div className="flex flex-col items-center gap-2">
+                <UploadIcon className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Choose photos or drag & drop</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JPG, PNG, GIF, WebP • Multiple files supported
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Files selected state - show files inside the drop zone
+              <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Selected Files ({files.length})</h4>
-                  {hasCompleted && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearCompleted}
-                    >
-                      Clear Completed
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <UploadIcon className="h-4 w-4 text-primary" />
+                    <h4 className="font-medium text-sm">Selected Files ({files.length})</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasCompleted && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearCompleted}
+                        className="h-6 px-2 text-xs"
+                      >
+                        Clear Completed
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">Drop more files here</p>
+                  </div>
                 </div>
                 
-                {/* Grid layout for files */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* Compact grid layout for files - now scrollable */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-60 overflow-y-auto overflow-x-hidden relative z-0 custom-scrollbar">
                   {files.map((uploadFile) => (
-                    <div key={uploadFile.id} className="relative border rounded-lg p-2 space-y-2">
+                    <div key={uploadFile.id} className="relative border rounded-md p-1 bg-background">
                       {/* Thumbnail with click to remove */}
                       <div className="relative aspect-square group">
                         {uploadFile.thumbnail && (
@@ -492,15 +511,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                             <img
                               src={uploadFile.thumbnail}
                               alt={uploadFile.file.name}
-                              className="w-full h-full object-cover rounded-md"
+                              className="w-full h-full object-cover rounded-sm"
                             />
                             {/* Click overlay for removal */}
                             {uploadFile.status === 'pending' && (
                               <div 
-                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md flex items-center justify-center"
+                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-sm flex items-center justify-center"
                                 onClick={() => confirmRemoveFile(uploadFile.id)}
                               >
-                                <Trash2 className="w-6 h-6 text-white" />
+                                <Trash2 className="w-4 h-4 text-white" />
                               </div>
                             )}
                           </>
@@ -508,35 +527,31 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         
                         {/* Status overlay */}
                         <div className={cn(
-                          "absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm",
+                          "absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm text-white",
                           uploadFile.status === 'success' && "bg-green-500",
                           uploadFile.status === 'error' && "bg-red-500",
                           uploadFile.status === 'uploading' && "bg-blue-500 animate-pulse",
-                          uploadFile.status === 'pending' && "bg-gray-300"
+                          uploadFile.status === 'pending' && "bg-gray-400"
                         )}>
-                          {uploadFile.status === 'success' && <Check className="w-3 h-3 text-white" />}
-                          {uploadFile.status === 'error' && <X className="w-3 h-3 text-white" />}
-                          {uploadFile.status === 'uploading' && <UploadIcon className="w-3 h-3 text-white" />}
+                          {uploadFile.status === 'success' && <Check className="w-2 h-2" />}
+                          {uploadFile.status === 'error' && <X className="w-2 h-2" />}
+                          {uploadFile.status === 'uploading' && <UploadIcon className="w-2 h-2" />}
                         </div>
                       </div>
                       
-                      {/* File info */}
-                      <div className="space-y-1">
+                      {/* Compact file info */}
+                      <div className="mt-1">
                         <div className="text-xs font-medium truncate" title={uploadFile.file.name}>
                           {uploadFile.file.name}
                         </div>
                         
-                        <div className="text-xs text-muted-foreground">
-                          {Math.round(uploadFile.file.size / 1024)}KB
-                        </div>
-                        
                         {uploadFile.status === 'uploading' && (
-                          <Progress value={uploadFile.progress} className="h-1" />
+                          <Progress value={uploadFile.progress} className="h-1 mt-1" />
                         )}
                         
                         {uploadFile.status === 'error' && uploadFile.error && (
                           <p className="text-xs text-red-600 truncate" title={uploadFile.error}>
-                            {uploadFile.error}
+                            Error
                           </p>
                         )}
                       </div>
@@ -545,37 +560,73 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 </div>
               </div>
             )}
-            
-            {/* Confirmation Dialog */}
-            <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remove Photo</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to remove this photo from the list?
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => fileToDelete && removeFile(fileToDelete)}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Remove
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
+        </div>
+      </div>
+      
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Photo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this photo from the list?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => fileToDelete && removeFile(fileToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 
-          <DrawerFooter>
-            <div className="grid grid-cols-2 gap-2">
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
+  const TriggerButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+    (props, ref) => (
+      <Button 
+        ref={ref}
+        {...props}
+        size="lg"
+        className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
+                   h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
+                   md:h-10 md:px-4 md:py-2 md:rounded-lg md:gap-2"
+      >
+        <Camera className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden xs:inline">Add Photos</span>
+        <span className="xs:hidden">Add</span>
+      </Button>
+    )
+  );
+
+  if (isLargeScreen) {
+    // Desktop: Use Dialog
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <TriggerButton />
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Share Wedding Memories</DialogTitle>
+            <DialogDescription>
+              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
+            </DialogDescription>
+          </DialogHeader>
+          
+          <UploadContent />
+
+          <DialogFooter className="flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Close
+              </Button>
               <Button 
                 onClick={handleUploadAll}
                 disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
@@ -586,9 +637,47 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 }
               </Button>
             </div>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Mobile/Tablet: Use Drawer
+  return (
+    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+      <DrawerTrigger asChild>
+        <TriggerButton />
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[80vh]">
+        <DrawerHeader>
+          <DrawerTitle>Share Wedding Memories</DrawerTitle>
+          <DrawerDescription>
+            Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
+          </DrawerDescription>
+        </DrawerHeader>
+
+        <UploadContent />
+
+        <DrawerFooter>
+          <div className="grid grid-cols-2 gap-2">
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">
+                Close
+              </Button>
+            </DrawerClose>
+            <Button 
+              onClick={handleUploadAll}
+              disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
+            >
+              {isUploading 
+                ? `Adding... (${uploadingCount})`
+                : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`
+              }
+            </Button>
+          </div>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 };
