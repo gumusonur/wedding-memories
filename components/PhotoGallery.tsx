@@ -15,13 +15,11 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const router = useRouter();
 
   const refetchPhotos = useCallback(async () => {
-    console.log('Refetching photos...');
     setIsLoading(true);
     try {
       const response = await fetch("/api/photos");
       if (response.ok) {
         const newImages = await response.json();
-        console.log(`Refetched ${newImages.length} photos`);
         setImages(newImages);
         return newImages.length;
       }
