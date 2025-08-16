@@ -59,12 +59,12 @@ export default function SharedModal({
       }}
     >
       <div
-        className="relative z-50 flex aspect-[3/2] w-full max-w-7xl items-center wide:h-full xl:taller-than-854:h-auto"
+        className="relative z-50 flex w-full max-w-7xl items-center justify-center p-4"
         {...handlers}
       >
         {/* Main image */}
-        <div className="w-full overflow-hidden">
-          <div className="relative flex aspect-[3/2] items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="relative max-w-full max-h-[90vh] flex items-center justify-center">
             <AnimatePresence initial={false} custom={direction}>
               <motion.div
                 key={index}
@@ -73,19 +73,20 @@ export default function SharedModal({
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="absolute"
+                className="relative"
               >
                 <Image
                   src={`https://res.cloudinary.com/${
                     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-                  }/image/upload/c_scale,${navigation ? "w_1280" : "w_1920"}/${
+                  }/image/upload/c_scale,w_1280/${
                     currentImage.public_id
                   }.${currentImage.format}`}
-                  width={navigation ? 1280 : 1920}
-                  height={navigation ? 853 : 1280}
+                  width={parseInt(currentImage.width)}
+                  height={parseInt(currentImage.height)}
                   priority
-                  alt="Next.js Conf image"
+                  alt="Wedding photo"
                   onLoad={() => setLoaded(true)}
+                  className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
                 />
               </motion.div>
             </AnimatePresence>
@@ -93,16 +94,16 @@ export default function SharedModal({
         </div>
 
         {/* Buttons + bottom nav bar */}
-        <div className="absolute inset-0 mx-auto flex max-w-7xl items-center justify-center">
+        <div className="absolute inset-0 mx-auto flex max-w-7xl items-center justify-center pointer-events-none">
           {/* Buttons */}
           {loaded && (
-            <div className="relative aspect-[3/2] max-h-full w-full">
+            <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
               {navigation && (
                 <>
                   {index > 0 && (
                     <button
-                      className="absolute left-3 top-[calc(50%-16px)] rounded-full bg-black/50 p-3 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white focus:outline-none"
-                      style={{ transform: "translate3d(0, 0, 0)" }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-3 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white focus:outline-none pointer-events-auto"
+                      style={{ transform: "translate3d(0, -50%, 0)" }}
                       onClick={() => changePhotoId(index - 1)}
                     >
                       <ChevronLeftIcon className="h-6 w-6" />
@@ -110,8 +111,8 @@ export default function SharedModal({
                   )}
                   {images && index + 1 < images.length && (
                     <button
-                      className="absolute right-3 top-[calc(50%-16px)] rounded-full bg-black/50 p-3 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white focus:outline-none"
-                      style={{ transform: "translate3d(0, 0, 0)" }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-3 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white focus:outline-none pointer-events-auto"
+                      style={{ transform: "translate3d(0, -50%, 0)" }}
                       onClick={() => changePhotoId(index + 1)}
                     >
                       <ChevronRightIcon className="h-6 w-6" />
@@ -119,7 +120,7 @@ export default function SharedModal({
                   )}
                 </>
               )}
-              <div className="absolute top-0 right-0 flex items-center gap-2 p-3 text-white">
+              <div className="absolute top-4 right-4 flex items-center gap-2 text-white pointer-events-auto">
                 {navigation ? (
                   <a
                     href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${currentImage.public_id}.${currentImage.format}`}
@@ -154,7 +155,7 @@ export default function SharedModal({
                   <ArrowDownTrayIcon className="h-5 w-5" />
                 </button>
               </div>
-              <div className="absolute top-0 left-0 flex items-center gap-2 p-3 text-white">
+              <div className="absolute top-4 left-4 flex items-center gap-2 text-white pointer-events-auto">
                 <button
                   onClick={() => closeModal()}
                   className="rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
