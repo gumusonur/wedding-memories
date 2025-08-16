@@ -518,7 +518,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               className={cn(
                 "absolute opacity-0 cursor-pointer z-10",
                 !hasFiles && "inset-0 w-full h-full",
-                hasFiles && "top-0 left-0 right-0 h-16 w-full"
+                hasFiles && "top-0 left-0 right-32 h-16" // Exclude right area where buttons are
               )}
               key={`${files.length}-overlay`} // Reset input when files change
             />
@@ -546,13 +546,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         {isSelectionMode ? `Managing ${files.length} Files` : `Selected Files (${files.length})`}
                       </h4>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative z-20">
                       {hasCompleted && !isSelectionMode && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={clearCompleted}
-                          className="h-7 px-3 text-xs"
+                          className="h-7 px-3 text-xs relative z-20"
                         >
                           Clear Completed
                         </Button>
@@ -617,12 +617,12 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
                   {/* Multi-select toggle button when not in selection mode */}
                   {!isSelectionMode && pendingFiles.length > 1 && (
-                    <div className="flex justify-center">
+                    <div className="flex justify-center relative z-20">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={toggleSelectionMode}
-                        className="h-8 flex items-center gap-2 text-sm"
+                        className="h-8 flex items-center gap-2 text-sm relative z-20"
                       >
                         <CheckSquare className="h-4 w-4" />
                         Select Multiple
@@ -794,11 +794,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         size="lg"
         className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
                    h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
-                   md:h-10 md:px-4 md:py-2 md:rounded-lg md:gap-2"
+                   md:h-12 md:px-6 md:py-3 md:rounded-lg md:gap-2 md:text-sm md:font-medium"
       >
-        <Camera className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden xs:inline">Add Photos</span>
-        <span className="xs:hidden">Add</span>
+        <Camera className="h-5 w-5 md:h-5 md:w-5" />
+        <span className="hidden sm:inline">Add Photos</span>
+        <span className="sm:hidden">Add</span>
       </Button>
     )
   );
