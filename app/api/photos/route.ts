@@ -23,6 +23,7 @@ export async function GET() {
         public_id: result.public_id,
         format: result.format,
         guestName: result.context?.guest || "Unknown",
+        uploadDate: result.created_at,
       });
       i++;
     }

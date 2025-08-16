@@ -7,6 +7,7 @@ export interface ImageProps {
   format: string;
   blurDataUrl?: string;
   guestName?: string;
+  uploadDate?: string;
 }
 
 export interface SharedModalProps {
