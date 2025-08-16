@@ -15,7 +15,7 @@ import {
 import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload as UploadIcon, X, Check, Trash2, Edit, Plus, Camera } from "lucide-react";
+import { Upload as UploadIcon, X, Check, Trash2, Edit, Plus, Camera, Square, CheckSquare, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -62,6 +62,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const [newGuestName, setNewGuestName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Load guest name from localStorage or props on mount
@@ -258,10 +261,58 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const removeFile = (id: string) => {
     setFiles(prev => prev.filter(f => f.id !== id));
     setFileToDelete(null);
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
   };
 
   const confirmRemoveFile = (id: string) => {
     setFileToDelete(id);
+  };
+
+  const toggleFileSelection = (id: string) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllFiles = () => {
+    const pendingFileIds = files.filter(f => f.status === 'pending').map(f => f.id);
+    setSelectedFiles(new Set(pendingFileIds));
+  };
+
+  const deselectAllFiles = () => {
+    setSelectedFiles(new Set());
+  };
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedFiles(new Set());
+    }
+  };
+
+  const removeSelectedFiles = () => {
+    setFiles(prev => prev.filter(f => !selectedFiles.has(f.id)));
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
+    
+    toast({
+      title: "Photos removed",
+      description: `${selectedFiles.size} photo${selectedFiles.size > 1 ? 's' : ''} removed from the list.`,
+    });
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const uploadFile = async (uploadFile: UploadFile) => {
@@ -400,53 +451,59 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const hasCompleted = files.some(f => f.status === 'success' || f.status === 'error');
   const pendingCount = files.filter(f => f.status === 'pending').length;
   const uploadingCount = files.filter(f => f.status === 'uploading').length;
+  const pendingFiles = files.filter(f => f.status === 'pending');
+  const selectedPendingFiles = pendingFiles.filter(f => selectedFiles.has(f.id));
+  const allPendingSelected = pendingFiles.length > 0 && selectedPendingFiles.length === pendingFiles.length;
+
+  // Shared guest name edit dialog
+  const GuestNameEditDialog = () => (
+    <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Your Name</DialogTitle>
+          <DialogDescription>
+            Update the name that will be associated with your photos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input
+            type="text"
+            placeholder="Enter your name"
+            value={newGuestName}
+            onChange={(e) => setNewGuestName(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsEditingName(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleNameChange}>
+            Update Name
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   // Shared content component for both Dialog and Drawer
   const UploadContent = () => (
     <div className="grid gap-4 p-4 overflow-auto max-h-[60vh] lg:max-h-[70vh]">
-      {/* Compact guest name display */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          Adding as: <span className="font-medium text-foreground">{guestName || "Not set"}</span>
-        </span>
-        <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => setNewGuestName(guestName)} className="h-6 px-2 text-xs">
-              <Edit className="w-3 h-3 mr-1" />
-              Edit
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Change Your Name</DialogTitle>
-              <DialogDescription>
-                Update the name that will be associated with your photos.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                type="text"
-                placeholder="Enter your name"
-                value={newGuestName}
-                onChange={(e) => setNewGuestName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditingName(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleNameChange}>
-                Update Name
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
       
       {/* Smart drag & drop area that adapts to content */}
       <div className="space-y-3">
         <div className="relative">
+          {/* Hidden file input for programmatic access */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+            key={files.length} // Reset input when files change
+          />
+          
           <div className={cn(
             "border-2 border-dashed rounded-lg transition-colors min-h-[120px] relative",
             !hasFiles && "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/25 p-6 text-center",
@@ -463,7 +520,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 !hasFiles && "inset-0 w-full h-full",
                 hasFiles && "top-0 left-0 right-0 h-16 w-full"
               )}
-              key={files.length} // Reset input when files change
+              key={`${files.length}-overlay`} // Reset input when files change
             />
             
             {!hasFiles ? (
@@ -480,63 +537,182 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             ) : (
               // Files selected state - show files inside the drop zone
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <UploadIcon className="h-4 w-4 text-primary" />
-                    <h4 className="font-medium text-sm">Selected Files ({files.length})</h4>
+                <div className="space-y-3">
+                  {/* Header with file count and actions */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <UploadIcon className="h-4 w-4 text-primary" />
+                      <h4 className="font-medium text-sm">
+                        {isSelectionMode ? `Managing ${files.length} Files` : `Selected Files (${files.length})`}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {hasCompleted && !isSelectionMode && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearCompleted}
+                          className="h-7 px-3 text-xs"
+                        >
+                          Clear Completed
+                        </Button>
+                      )}
+                      {!isSelectionMode && (
+                        <p className="text-xs text-muted-foreground">Drop more files here</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {hasCompleted && (
+
+                  {/* Selection mode controls */}
+                  {isSelectionMode && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={allPendingSelected ? deselectAllFiles : selectAllFiles}
+                            className="h-8 flex items-center gap-2"
+                            disabled={pendingFiles.length === 0}
+                          >
+                            {allPendingSelected ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                            {allPendingSelected ? "Deselect All" : "Select All"}
+                          </Button>
+                          
+                          {selectedFiles.size > 0 && (
+                            <div className="text-sm font-medium text-primary">
+                              {selectedFiles.size} photo{selectedFiles.size > 1 ? 's' : ''} selected
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {selectedFiles.size > 0 && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={removeSelectedFiles}
+                              className="h-8 flex items-center gap-2"
+                            >
+                              <Trash className="h-4 w-4" />
+                              Remove {selectedFiles.size}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleSelectionMode}
+                            className="h-8"
+                          >
+                            Done
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multi-select toggle button when not in selection mode */}
+                  {!isSelectionMode && pendingFiles.length > 1 && (
+                    <div className="flex justify-center">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={clearCompleted}
-                        className="h-6 px-2 text-xs"
+                        onClick={toggleSelectionMode}
+                        className="h-8 flex items-center gap-2 text-sm"
                       >
-                        Clear Completed
+                        <CheckSquare className="h-4 w-4" />
+                        Select Multiple
                       </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground">Drop more files here</p>
-                  </div>
+                    </div>
+                  )}
                 </div>
                 
-                {/* Compact grid layout for files - now scrollable */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-60 overflow-y-auto overflow-x-hidden relative z-0 custom-scrollbar">
+                {/* Compact grid layout for files - stable layout */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-60 overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
                   {files.map((uploadFile) => (
-                    <div key={uploadFile.id} className="relative border rounded-md p-1 bg-background">
-                      {/* Thumbnail with click to remove */}
-                      <div className="relative aspect-square group">
+                    <div key={uploadFile.id} className={cn(
+                      "relative rounded-lg bg-background transition-all duration-200 p-0.5",
+                      isSelectionMode && uploadFile.status === 'pending' && selectedFiles.has(uploadFile.id) && "ring-2 ring-primary bg-primary/5",
+                      isSelectionMode && uploadFile.status === 'pending' && !selectedFiles.has(uploadFile.id) && "opacity-60",
+                      !isSelectionMode && "border"
+                    )}>
+                      <div 
+                        className="relative aspect-square group cursor-pointer overflow-hidden rounded-md"
+                        onClick={() => {
+                          if (isSelectionMode && uploadFile.status === 'pending') {
+                            toggleFileSelection(uploadFile.id);
+                          } else if (!isSelectionMode && uploadFile.status === 'pending') {
+                            confirmRemoveFile(uploadFile.id);
+                          }
+                        }}
+                      >
                         {uploadFile.thumbnail && (
                           <>
                             <img
                               src={uploadFile.thumbnail}
                               alt={uploadFile.file.name}
-                              className="w-full h-full object-cover rounded-sm"
+                              className="w-full h-full object-cover transition-all duration-200"
                             />
-                            {/* Click overlay for removal */}
-                            {uploadFile.status === 'pending' && (
-                              <div 
-                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-sm flex items-center justify-center"
-                                onClick={() => confirmRemoveFile(uploadFile.id)}
-                              >
-                                <Trash2 className="w-4 h-4 text-white" />
+                            
+                            {/* Selection mode: Show checkbox overlay */}
+                            {isSelectionMode && uploadFile.status === 'pending' && (
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                <div className={cn(
+                                  "w-7 h-7 rounded-full border-2 border-white bg-white flex items-center justify-center transition-all duration-200 shadow-lg",
+                                  selectedFiles.has(uploadFile.id) && "bg-primary border-primary"
+                                )}>
+                                  {selectedFiles.has(uploadFile.id) ? (
+                                    <Check className="w-4 h-4 text-white" />
+                                  ) : (
+                                    <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Normal mode: Show trash on hover */}
+                            {!isSelectionMode && uploadFile.status === 'pending' && (
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
+                                  <Trash2 className="w-4 h-4 text-white" />
+                                </div>
                               </div>
                             )}
                           </>
                         )}
                         
-                        {/* Status overlay */}
-                        <div className={cn(
-                          "absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm text-white",
-                          uploadFile.status === 'success' && "bg-green-500",
-                          uploadFile.status === 'error' && "bg-red-500",
-                          uploadFile.status === 'uploading' && "bg-blue-500 animate-pulse",
-                          uploadFile.status === 'pending' && "bg-gray-400"
-                        )}>
-                          {uploadFile.status === 'success' && <Check className="w-2 h-2" />}
-                          {uploadFile.status === 'error' && <X className="w-2 h-2" />}
-                          {uploadFile.status === 'uploading' && <UploadIcon className="w-2 h-2" />}
-                        </div>
+                        {/* Selection checkbox in top-right corner when in selection mode */}
+                        {isSelectionMode && uploadFile.status === 'pending' && (
+                          <div className="absolute top-1 right-1 z-10">
+                            <div className={cn(
+                              "w-5 h-5 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center transition-all duration-200",
+                              selectedFiles.has(uploadFile.id) && "bg-primary border-primary"
+                            )}>
+                              {selectedFiles.has(uploadFile.id) && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Status indicator (not in selection mode) */}
+                        {!isSelectionMode && (
+                          <div className={cn(
+                            "absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-md text-white text-xs",
+                            uploadFile.status === 'success' && "bg-green-500",
+                            uploadFile.status === 'error' && "bg-red-500",
+                            uploadFile.status === 'uploading' && "bg-blue-500 animate-pulse",
+                            uploadFile.status === 'pending' && "bg-gray-400"
+                          )}>
+                            {uploadFile.status === 'success' && <Check className="w-2 h-2" />}
+                            {uploadFile.status === 'error' && <X className="w-2 h-2" />}
+                            {uploadFile.status === 'uploading' && <UploadIcon className="w-2 h-2" />}
+                          </div>
+                        )}
                       </div>
                       
                       {/* Compact file info */}
@@ -557,6 +733,28 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Add more photos button */}
+                  {!isSelectionMode && (
+                    <div className="relative rounded-lg bg-background transition-all duration-200 p-0.5 border border-dashed border-muted-foreground/50 hover:border-primary/50 hover:bg-muted/25">
+                      <div 
+                        className="relative aspect-square group cursor-pointer overflow-hidden rounded-md flex items-center justify-center bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+                        onClick={triggerFileInput}
+                      >
+                        <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+                          <Plus className="w-6 h-6" />
+                          <span className="text-xs font-medium">Add More</span>
+                        </div>
+                      </div>
+                      
+                      {/* Compact info area to match other items */}
+                      <div className="mt-1">
+                        <div className="text-xs text-muted-foreground text-center">
+                          Photos
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -614,10 +812,30 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         </DialogTrigger>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Share Wedding Memories</DialogTitle>
-            <DialogDescription>
-              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Share Wedding Memories</DialogTitle>
+                <DialogDescription>
+                  Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Adding as:</span>
+                <span className="font-medium">{guestName || "Not set"}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setNewGuestName(guestName);
+                    setIsEditingName(true);
+                  }}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
           
           <UploadContent />
@@ -639,6 +857,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             </div>
           </DialogFooter>
         </DialogContent>
+        <GuestNameEditDialog />
       </Dialog>
     );
   }
@@ -651,10 +870,30 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       </DrawerTrigger>
       <DrawerContent className="max-h-[80vh]">
         <DrawerHeader>
-          <DrawerTitle>Share Wedding Memories</DrawerTitle>
-          <DrawerDescription>
-            Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
-          </DrawerDescription>
+          <div className="space-y-2">
+            <DrawerTitle>Share Wedding Memories</DrawerTitle>
+            <DrawerDescription>
+              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
+            </DrawerDescription>
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Adding as:</span>
+                <span className="font-medium text-foreground">{guestName || "Not set"}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setNewGuestName(guestName);
+                  setIsEditingName(true);
+                }}
+                className="h-7 px-2 text-xs"
+              >
+                <Edit className="w-3 h-3 mr-1" />
+                Edit
+              </Button>
+            </div>
+          </div>
         </DrawerHeader>
 
         <UploadContent />
@@ -678,6 +917,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           </div>
         </DrawerFooter>
       </DrawerContent>
+      <GuestNameEditDialog />
     </Drawer>
   );
 };
