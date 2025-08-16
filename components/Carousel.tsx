@@ -22,8 +22,8 @@ export default function Carousel({
     router.push("/");
   }
 
-  function changePhotoId(newVal: number) {
-    return newVal;
+  function changePhotoId() {
+    // No navigation in individual photo pages
   }
 
   useKeypress("Escape", () => {

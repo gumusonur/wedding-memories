@@ -51,11 +51,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const currentPhotoUrl = `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/c_scale,w_2560/${currentPhoto.public_id}.${currentPhoto.format}`;
 
   return {
-    title: "Next.js Conf 2022 Photos",
+    title: `${process.env.NEXT_PUBLIC_GROOM_NAME} & ${process.env.NEXT_PUBLIC_BRIDE_NAME} Wedding Memories`,
     openGraph: {
+      title: `${process.env.NEXT_PUBLIC_GROOM_NAME} & ${process.env.NEXT_PUBLIC_BRIDE_NAME} Wedding Memories`,
+      description: "Beautiful wedding memories captured in time.",
       images: [currentPhotoUrl],
     },
     twitter: {
+      title: `${process.env.NEXT_PUBLIC_GROOM_NAME} & ${process.env.NEXT_PUBLIC_BRIDE_NAME} Wedding Memories`,
+      description: "Beautiful wedding memories captured in time.",
       images: [currentPhotoUrl],
     },
   };
