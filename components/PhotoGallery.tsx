@@ -42,12 +42,12 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   }, [refetchPhotos]);
 
   return (
-    <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+    <div className="columns-1 gap-5 sm:columns-2 xl:columns-3 2xl:columns-4">
       {isLoading && (
-        <div className="col-span-full text-center py-8 text-muted-foreground">
-          <div className="flex items-center justify-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-            Loading new photos...
+        <div className="col-span-full text-center py-12 text-muted-foreground">
+          <div className="flex items-center justify-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+            <span className="text-sm font-medium">Loading new photos...</span>
           </div>
         </div>
       )}

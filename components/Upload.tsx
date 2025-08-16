@@ -394,18 +394,19 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           <Button 
             size="lg"
             className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
-                       h-16 px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium
-                       md:h-auto md:w-auto md:rounded-md md:px-4 md:py-2"
+                       h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
+                       md:h-10 md:px-4 md:py-2 md:rounded-lg md:gap-2"
           >
             <Camera className="h-5 w-5 md:h-4 md:w-4" />
-            <span>Add Photos</span>
+            <span className="hidden xs:inline">Add Photos</span>
+            <span className="xs:hidden">Add</span>
           </Button>
         </DrawerTrigger>
         <DrawerContent className="max-h-[80vh]">
           <DrawerHeader>
-            <DrawerTitle>Add Photos</DrawerTitle>
+            <DrawerTitle>Share Wedding Memories</DrawerTitle>
             <DrawerDescription>
-              Select multiple photos to share with Saygin & Dilan
+              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery
             </DrawerDescription>
           </DrawerHeader>
 
