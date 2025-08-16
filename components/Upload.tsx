@@ -340,12 +340,20 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         description: "Loading new photos...",
       });
       
-      // Refetch photos instead of refreshing the page
-      setTimeout(() => {
+      // Refetch photos with retries for Cloudinary indexing delay
+      const refetchWithRetry = async (attempt = 1, maxAttempts = 3) => {
         if ((window as any).refetchPhotos) {
-          (window as any).refetchPhotos();
+          await (window as any).refetchPhotos();
+          
+          // If this isn't the last attempt, schedule another refetch
+          if (attempt < maxAttempts) {
+            setTimeout(() => refetchWithRetry(attempt + 1, maxAttempts), 2000);
+          }
         }
-      }, 1000);
+      };
+      
+      // Start first refetch after 2 seconds to allow Cloudinary indexing
+      setTimeout(() => refetchWithRetry(), 2000);
     }
   };
 
