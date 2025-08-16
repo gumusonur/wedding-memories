@@ -3,7 +3,7 @@
 import { Dialog } from "@headlessui/react";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import useKeypress from "react-use-keypress";
 import type { ImageProps } from "../utils/types";
 import SharedModal from "./SharedModal";
@@ -25,13 +25,18 @@ export default function Modal({
   const [direction, setDirection] = useState(0);
   const [curIndex, setCurIndex] = useState(index);
 
+  // Sync curIndex with URL parameter
+  useEffect(() => {
+    setCurIndex(index);
+  }, [index]);
+
   function handleClose() {
     router.push("/");
     onClose?.();
   }
 
   function changePhotoId(newVal: number) {
-    if (newVal > index) {
+    if (newVal > curIndex) {
       setDirection(1);
     } else {
       setDirection(-1);
@@ -41,14 +46,14 @@ export default function Modal({
   }
 
   useKeypress("ArrowRight", () => {
-    if (index + 1 < images.length) {
-      changePhotoId(index + 1);
+    if (curIndex + 1 < images.length) {
+      changePhotoId(curIndex + 1);
     }
   });
 
   useKeypress("ArrowLeft", () => {
-    if (index > 0) {
-      changePhotoId(index - 1);
+    if (curIndex > 0) {
+      changePhotoId(curIndex - 1);
     }
   });
 

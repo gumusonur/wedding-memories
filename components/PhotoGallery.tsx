@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ImageProps } from "../utils/types";
 
 interface PhotoGalleryProps {
@@ -12,6 +12,7 @@ interface PhotoGalleryProps {
 export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const [images, setImages] = useState<ImageProps[]>(initialImages);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const refetchPhotos = useCallback(async () => {
     setIsLoading(true);
@@ -44,11 +45,9 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
         </div>
       )}
       {images.map(({ id, public_id, format, blurDataUrl, guestName }) => (
-        <Link
+        <div
           key={id}
-          href={`/?photoId=${id}`}
-          as={`/p/${id}`}
-          shallow
+          onClick={() => router.push(`/?photoId=${id}`, { scroll: false })}
           className="after:content group relative mb-5 block w-full cursor-zoom-in after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:shadow-highlight"
         >
           <Image
@@ -72,7 +71,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
               </p>
             </div>
           )}
-        </Link>
+        </div>
       ))}
     </div>
   );
