@@ -65,37 +65,40 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl">Welcome! 🎉</DialogTitle>
-          <DialogDescription className="text-base">
-            Welcome to {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME}'s wedding gallery! 
-            <br />
-            Please tell us your name so we can credit your photos.
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="text-center space-y-3">
+          <DialogTitle className="text-2xl font-serif font-light">
+            Welcome to our Wedding Gallery! 
+            <span className="text-primary">✨</span>
+          </DialogTitle>
+          <DialogDescription className="text-base leading-relaxed">
+            Hello! You're viewing <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_GROOM_NAME}</span> & <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_BRIDE_NAME}</span>'s wedding memories.
+            <br className="hidden sm:block" />
+            Please share your name so we can credit any photos you add.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Input
               type="text"
-              placeholder="Enter your name"
+              placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="text-center text-lg"
+              className="text-center text-lg h-12 bg-muted/50 border-muted"
               autoFocus
             />
           </div>
           
           <DialogFooter>
-            <Button type="submit" className="w-full">
-              Continue to Wedding Gallery
+            <Button type="submit" className="w-full h-11 text-base">
+              View Wedding Gallery
             </Button>
           </DialogFooter>
         </form>
         
-        <p className="text-xs text-muted-foreground text-center">
-          Your name will be saved for future visits
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          We'll remember your name for future visits
         </p>
       </DialogContent>
     </Dialog>

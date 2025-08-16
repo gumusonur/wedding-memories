@@ -4,17 +4,22 @@ import { Skeleton } from "../components/ui/skeleton";
 export default function Loading() {
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 overflow-auto">
-      <main className="mx-auto max-w-[1960px] px-4 py-2">
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-foreground order-1 sm:order-none">
-          {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME} Wedding Memories
-        </h1>
-        <div className="flex items-center gap-2 order-2 sm:order-none">
+      <main className="mx-auto max-w-[1960px] px-4 py-4">
+      <header className="flex justify-between items-start gap-4 mb-8">
+        <div className="flex flex-col gap-1 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-light text-foreground leading-tight">
+            <span className="text-primary font-medium">{process.env.NEXT_PUBLIC_GROOM_NAME}</span>
+            <span className="text-muted-foreground mx-2 font-light">&</span>
+            <span className="text-primary font-medium">{process.env.NEXT_PUBLIC_BRIDE_NAME}</span>
+          </h1>
+          <p className="text-sm text-muted-foreground font-light">Wedding Memories</p>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
           <Upload />
         </div>
       </header>
 
-      <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+      <div className="columns-1 gap-5 sm:columns-2 xl:columns-3 2xl:columns-4">
         {/* Generate skeleton placeholders with realistic image proportions */}
         {Array.from({ length: 16 }).map((_, i) => {
           // Create varied heights to mimic real photo gallery masonry layout
