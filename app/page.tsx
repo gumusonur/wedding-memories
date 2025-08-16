@@ -10,6 +10,7 @@ async function getImages(): Promise<ImageProps[]> {
     .expression(`folder:${process.env.CLOUDINARY_FOLDER}/*`)
     .sort_by("public_id", "desc")
     .max_results(400)
+    .with_field("context")
     .execute();
 
   let reducedResults: ImageProps[] = [];
@@ -22,6 +23,7 @@ async function getImages(): Promise<ImageProps[]> {
       width: result.width,
       public_id: result.public_id,
       format: result.format,
+      guestName: result.context?.guest || "Unknown",
     });
     i++;
   }
