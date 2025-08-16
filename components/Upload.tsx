@@ -72,25 +72,79 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   }, [currentGuestName]);
 
   const isValidImageFile = (file: File): boolean => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    return validTypes.includes(file.type.toLowerCase());
+    try {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      
+      // Check MIME type first
+      if (file.type && validTypes.includes(file.type.toLowerCase())) {
+        return true;
+      }
+      
+      // Fallback: check file extension for Safari compatibility
+      const fileName = file.name?.toLowerCase() || '';
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+      return validExtensions.some(ext => fileName.endsWith(ext));
+    } catch (error) {
+      console.warn('File validation error:', error);
+      return false;
+    }
   };
 
   const createThumbnail = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        resolve(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    return new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve(e.target?.result as string || '');
+        };
+        reader.onerror = () => {
+          console.warn('Thumbnail creation failed for:', file.name);
+          reject(new Error('Failed to create thumbnail'));
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.warn('FileReader not supported:', error);
+        reject(error);
+      }
     });
   };
 
   const createFileHash = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    try {
+      // Check if crypto.subtle is available (Safari compatibility)
+      if (!window.crypto || !window.crypto.subtle) {
+        // Fallback: use file name + size + lastModified as hash
+        return `fallback_${file.name}_${file.size}_${file.lastModified}`;
+      }
+
+      // Check file size limit (2GB) for Safari/Chrome compatibility
+      if (file.size > 2 * 1024 * 1024 * 1024) {
+        // For large files, use metadata hash
+        return `large_${file.name}_${file.size}_${file.lastModified}`;
+      }
+
+      // Try to use modern File.arrayBuffer() method
+      let arrayBuffer: ArrayBuffer;
+      if (file.arrayBuffer) {
+        arrayBuffer = await file.arrayBuffer();
+      } else {
+        // Fallback for older browsers using FileReader
+        arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.warn('Hash creation failed, using fallback:', error);
+      // Ultimate fallback: use file metadata
+      return `error_${file.name}_${file.size}_${file.lastModified}`;
+    }
   };
 
   const isDuplicateFile = (newFile: File, newHash: string): boolean => {
@@ -127,22 +181,38 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     const duplicateFiles: string[] = [];
     
     for (const file of validFiles) {
-      const hash = await createFileHash(file);
-      
-      if (isDuplicateFile(file, hash)) {
-        duplicateFiles.push(file.name);
-        continue;
+      try {
+        const hash = await createFileHash(file);
+        
+        if (isDuplicateFile(file, hash)) {
+          duplicateFiles.push(file.name);
+          continue;
+        }
+        
+        let thumbnail = '';
+        try {
+          thumbnail = await createThumbnail(file);
+        } catch (error) {
+          console.warn(`Thumbnail creation failed for ${file.name}:`, error);
+          // Continue without thumbnail - Safari might not support certain image types
+        }
+        
+        newFiles.push({
+          file,
+          id: Math.random().toString(36).substring(2, 11),
+          progress: 0,
+          status: 'pending',
+          thumbnail,
+          hash
+        });
+      } catch (error) {
+        console.error(`Failed to process file ${file.name}:`, error);
+        toast({
+          variant: "destructive",
+          title: "File processing error",
+          description: `Failed to process ${file.name}. Please try again.`,
+        });
       }
-      
-      const thumbnail = await createThumbnail(file);
-      newFiles.push({
-        file,
-        id: Math.random().toString(36).substr(2, 9),
-        progress: 0,
-        status: 'pending',
-        thumbnail,
-        hash
-      });
     }
     
     // Show duplicate notification if any duplicates found
