@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { WelcomeDialog } from "./WelcomeDialog";
 import { Upload } from "./Upload";
 import { ModeToggle } from "./ModeToggle";
@@ -11,6 +12,9 @@ interface ClientGalleryWrapperProps {
 
 export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
   const [guestName, setGuestName] = useState<string>("");
+  const searchParams = useSearchParams();
+  const photoId = searchParams.get("photoId");
+  const isModalOpen = !!photoId;
 
   return (
     <>
@@ -29,8 +33,8 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
         {children}
       </main>
 
-      {/* Floating Upload Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Floating Upload Button - Hidden when modal is open */}
+      <div className={`fixed bottom-6 right-6 z-50 transition-opacity duration-200 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <Upload currentGuestName={guestName} />
       </div>
     </>
