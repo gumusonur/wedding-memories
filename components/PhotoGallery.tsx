@@ -43,7 +43,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
           Loading new photos...
         </div>
       )}
-      {images.map(({ id, public_id, format, blurDataUrl }) => (
+      {images.map(({ id, public_id, format, blurDataUrl, guestName }) => (
         <Link
           key={id}
           href={`/?photoId=${id}`}
@@ -65,6 +65,13 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
               (max-width: 1536px) 33vw,
               25vw"
           />
+          {guestName && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg">
+              <p className="text-white text-xs font-medium p-2 text-center">
+                Shared by {guestName}
+              </p>
+            </div>
+          )}
         </Link>
       ))}
     </div>
