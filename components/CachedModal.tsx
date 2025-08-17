@@ -5,20 +5,20 @@
 
 "use client";
 
-import { Dialog } from "@headlessui/react";
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import useKeypress from "react-use-keypress";
 import { useSwipeable } from "react-swipeable";
 import {
-  ArrowDownTrayIcon,
-  ArrowTopRightOnSquareIcon,
-  ArrowUturnLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+  Download,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import type { ImageProps } from "../utils/types";
 import { variants } from "../utils/animationVariants";
 import downloadPhoto from "../utils/downloadPhoto";
@@ -95,20 +95,18 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
   );
 
   return (
-    <Dialog
-      static
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-10 flex items-center justify-center"
-    >
-      <Dialog.Overlay
-        as={motion.div}
-        key="backdrop"
-        className="fixed inset-0 z-30 bg-black/70 backdrop-blur-2xl"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-2xl" />
+        <DialogPrimitive.Content 
+          className="fixed inset-0 z-50 flex items-center justify-center max-w-none w-screen h-screen p-0 border-0 bg-transparent shadow-none translate-x-0 translate-y-0 left-0 top-0"
+          onEscapeKeyDown={onClose}
+          onPointerDownOutside={onClose}
+        >
+          <DialogTitle className="sr-only">
+            Wedding photo {currentIndex + 1} of {images.length}
+            {currentImage.guestName && ` shared by ${currentImage.guestName}`}
+          </DialogTitle>
       
       <MotionConfig
         transition={{
@@ -155,7 +153,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     style={{ transform: "translate3d(0, -50%, 0)" }}
                     onClick={() => changePhotoIndex(currentIndex - 1)}
                   >
-                    <ChevronLeftIcon className="h-6 w-6" />
+                    <ChevronLeft className="h-6 w-6" />
                   </button>
                 )}
                 
@@ -166,7 +164,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     style={{ transform: "translate3d(0, -50%, 0)" }}
                     onClick={() => changePhotoIndex(currentIndex + 1)}
                   >
-                    <ChevronRightIcon className="h-6 w-6" />
+                    <ChevronRight className="h-6 w-6" />
                   </button>
                 )}
                 
@@ -179,7 +177,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     title="Open fullsize version"
                     rel="noreferrer"
                   >
-                    <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+                    <ExternalLink className="h-5 w-5" />
                   </a>
                   <button
                     onClick={() =>
@@ -191,7 +189,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     className="rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
                     title="Download fullsize version"
                   >
-                    <ArrowDownTrayIcon className="h-5 w-5" />
+                    <Download className="h-5 w-5" />
                   </button>
                 </div>
                 
@@ -201,7 +199,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     onClick={onClose}
                     className="rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
                   >
-                    <XMarkIcon className="h-5 w-5" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               </div>
@@ -255,6 +253,8 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
           </div>
         </div>
       </MotionConfig>
+        </DialogPrimitive.Content>
+      </DialogPortal>
     </Dialog>
   );
 }
