@@ -558,13 +558,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   {/* Selection mode controls */}
                   {isSelectionMode && (
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                      <div className="flex flex-col gap-3">
+                        {/* Top row: Select All button and selection count */}
+                        <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-4">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={allPendingSelected ? deselectAllFiles : selectAllFiles}
-                            className="h-8 flex items-center gap-2"
+                            className="h-8 flex items-center gap-2 w-full xs:w-auto"
                             disabled={pendingFiles.length === 0}
                           >
                             {allPendingSelected ? (
@@ -572,33 +573,37 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                             ) : (
                               <Square className="h-4 w-4" />
                             )}
-                            {allPendingSelected ? "Deselect All" : "Select All"}
+                            <span>
+                              {allPendingSelected ? "Deselect All" : "Select All"}
+                            </span>
                           </Button>
                           
                           {selectedFiles.size > 0 && (
-                            <div className="text-sm font-medium text-primary">
+                            <div className="text-sm font-medium text-primary text-center xs:text-left">
                               {selectedFiles.size} photo{selectedFiles.size > 1 ? 's' : ''} selected
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        {/* Bottom row: Action buttons */}
+                        <div className="flex gap-2">
                           {selectedFiles.size > 0 && (
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={removeSelectedFiles}
-                              className="h-8 flex items-center gap-2"
+                              className="h-8 flex items-center gap-2 flex-1"
                             >
                               <Trash className="h-4 w-4" />
-                              Remove {selectedFiles.size}
+                              <span className="hidden xs:inline">Remove {selectedFiles.size}</span>
+                              <span className="xs:hidden">Remove</span>
                             </Button>
                           )}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={toggleSelectionMode}
-                            className="h-8"
+                            className="h-8 px-4"
                           >
                             Done
                           </Button>
