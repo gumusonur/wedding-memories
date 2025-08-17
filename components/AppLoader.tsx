@@ -47,7 +47,7 @@ export function AppLoader({ children, minLoadTime = 1500 }: AppLoaderProps) {
           <Spinner size="lg" className="text-foreground" />
           <div className="text-center">
             <h2 className="text-xl font-semibold text-foreground">
-              {process.env.NEXT_PUBLIC_GROOM_NAME} & {process.env.NEXT_PUBLIC_BRIDE_NAME} Wedding Memories
+              {process.env.NEXT_PUBLIC_GROOM_NAME || "Groom"} & {process.env.NEXT_PUBLIC_BRIDE_NAME || "Bride"} Wedding Memories
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               Loading beautiful memories...

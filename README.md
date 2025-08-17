@@ -1,224 +1,102 @@
 # Wedding Memories Gallery
 
-A beautiful, modern wedding photo gallery built with Next.js, Cloudinary, and shadcn/ui. This application allows wedding guests to view and upload photos from the celebration in a responsive, elegant interface with customizable couple names and transparent loading screens.
+A modern wedding photo gallery built with Next.js, Cloudinary, and shadcn/ui. Guests can view and upload photos with full keyboard navigation, accessibility support, and responsive design.
 
 ## ✨ Features
 
-### 🖼️ Photo Gallery
-- **Responsive masonry layout** with 1-4 columns based on screen size
-- **Modal photo viewing** with URL routing (`/p/[photoId]`)
-- **Keyboard navigation** (arrow keys, ESC)
-- **Smooth animations** powered by Framer Motion
-- **Optimized loading** with blur placeholders
-
-### 📤 Photo Upload
-- **Multiple file upload** with drag & drop support
-- **Thumbnail previews** in grid layout
-- **Real-time progress tracking** with visual feedback
-- **File type validation** (JPG, PNG, GIF, WebP only)
-- **Upload confirmation** with toast notifications
-- **Guest name tracking** for photo attribution
-
-### 🎨 User Experience
-- **Dark/Light/System theme** support
-- **Mobile-first responsive design**
-- **Transparent blur loading screens** with content preview
-- **App startup loader** with smooth transitions
-- **Environment-based couple name configuration**
-- **Toast notifications** for user feedback
-- **Welcome dialog** with guest name collection
-
-### 🚀 Performance
-- **Static generation** with build-time image fetching
-- **Cloudinary optimization** for fast image delivery
-- **Next.js Image component** with responsive sizes
-- **Efficient caching** and CDN delivery
+- **Responsive masonry gallery** with 1-4 columns
+- **Modal photo viewing** with URL routing and keyboard navigation
+- **Multiple file upload** with drag & drop and batch selection
+- **Real-time progress tracking** and file validation
+- **Full accessibility** (WCAG 2.1 AA, ARIA labels, screen readers)
+- **Dark/light theme** support with system preference detection
+- **Static generation** with Cloudinary optimization
+- **TypeScript strict mode** with comprehensive validation
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15 with App Router
+- **Framework**: Next.js 15 with App Router & TypeScript
 - **Styling**: Tailwind CSS + shadcn/ui components
-- **Image Storage**: Cloudinary
+- **Images**: Cloudinary with optimization
 - **Animations**: Framer Motion
-- **State Management**: React Global State
-- **TypeScript**: Full type safety
-- **Icons**: Lucide React
+- **Validation**: Custom security-focused utilities
+- **Testing**: Jest-ready test utilities and mock factories
+- **Accessibility**: WCAG 2.1 AA compliant
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Node.js 18+ 
-- pnpm (recommended) or npm
-- Cloudinary account
-
-### Installation
-
-1. **Clone the repository**
+1. **Clone and install**
    ```bash
    git clone <repository-url>
-   cd with-cloudinary-app
-   ```
-
-2. **Install dependencies**
-   ```bash
+   cd wedding-memories
    pnpm install
    ```
 
-3. **Configure environment variables**
-   
-   Copy the example file and configure:
+2. **Configure environment**
    ```bash
    cp .env.example .env
-   ```
-   
-   Edit `.env` with your values:
-   ```env
-   # Cloudinary Configuration
-   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
-   CLOUDINARY_FOLDER=wedding-photos
-   
-   # Couple Names
-   NEXT_PUBLIC_BRIDE_NAME=Bride Name
-   NEXT_PUBLIC_GROOM_NAME=Groom Name
+   # Edit .env with your Cloudinary credentials and couple names
    ```
 
-4. **Start development server**
+3. **Start development**
    ```bash
    pnpm dev
+   # Open http://localhost:3000
    ```
 
-5. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+### Required Environment Variables
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name
+- `CLOUDINARY_API_KEY` & `CLOUDINARY_API_SECRET` - API credentials  
+- `CLOUDINARY_FOLDER` - Photo storage folder
+- `NEXT_PUBLIC_BRIDE_NAME` & `NEXT_PUBLIC_GROOM_NAME` - Display names
 
 ## 📁 Project Structure
 
 ```
 ├── app/                    # Next.js App Router
-│   ├── api/upload/        # Photo upload API endpoint
+│   ├── api/               # API routes (photos, upload)
 │   ├── p/[photoId]/       # Individual photo pages
-│   ├── page.tsx           # Main gallery page
-│   ├── layout.tsx         # Root layout with theme provider
-│   └── loading.tsx        # Loading UI with skeletons
+│   └── page.tsx           # Main gallery page
 ├── components/            # React components
 │   ├── ui/               # shadcn/ui components
+│   ├── PhotoGallery.tsx  # Main gallery
 │   ├── Upload.tsx        # Photo upload interface
-│   ├── Modal.tsx         # Photo modal viewer
-│   ├── Carousel.tsx      # Photo navigation
-│   └── ModeToggle.tsx    # Theme switcher
-├── utils/                # Utility functions
-│   ├── cloudinary.ts     # Cloudinary configuration
+│   └── Modal.tsx         # Photo modal viewer
+├── utils/                # Utilities
 │   ├── types.ts          # TypeScript interfaces
-│   └── generateBlurPlaceholder.ts
-├── styles/               # Global styles
-└── public/               # Static assets
+│   ├── validation.ts     # Input validation
+│   ├── errors.ts         # Error handling
+│   └── testing.ts        # Test utilities
 ```
 
-## 🔧 Configuration
+## 📝 Development
 
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name (public) | ✅ |
-| `CLOUDINARY_API_KEY` | Cloudinary API key (server-side) | ✅ |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret (server-side) | ✅ |
-| `CLOUDINARY_FOLDER` | Folder name for storing photos | ✅ |
-| `NEXT_PUBLIC_BRIDE_NAME` | Bride's name for display | ✅ |
-| `NEXT_PUBLIC_GROOM_NAME` | Groom's name for display | ✅ |
-
-### Cloudinary Setup
-
-1. Create a [Cloudinary account](https://cloudinary.com)
-2. Get your cloud name, API key, and API secret from the dashboard
-3. Create a folder for wedding photos (e.g., "wedding-photos")
-4. Configure upload presets if needed
-
-## 📱 Usage
-
-### For Guests
-1. **View Photos**: Browse the gallery in a beautiful masonry layout
-2. **Full-Screen View**: Click any photo to view in modal with navigation
-3. **Upload Photos**: Click "Upload Photos" to add your pictures
-4. **Theme Toggle**: Switch between dark/light modes
-
-### For Wedding Couple
-- Photos are automatically organized in Cloudinary
-- Access admin dashboard through Cloudinary console
-- Download original photos or create albums
-- Monitor upload activity and guest participation
+```bash
+pnpm dev     # Start development server
+pnpm build   # Build for production
+pnpm lint    # Run ESLint
+```
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+Deploy to [Vercel](https://vercel.com/new/clone) (recommended) or any platform supporting Next.js. Don't forget to configure environment variables in your deployment dashboard.
 
-1. **Push to GitHub**
-   ```bash
-   git push origin main
-   ```
+## 🔍 Code Quality
 
-2. **Deploy with Vercel**
-   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
-
-3. **Configure environment variables** in Vercel dashboard
-
-4. **Custom domain** (optional) - Add your wedding domain
-
-### Alternative Platforms
-
-- **Netlify**: Works with static export
-- **Railway**: Full-stack deployment
-- **DigitalOcean**: App platform deployment
-
-## 🎨 Customization
-
-### Branding
-- Update couple names in `.env` file (`NEXT_PUBLIC_BRIDE_NAME`, `NEXT_PUBLIC_GROOM_NAME`)
-- Replace `public/favicon.ico` with custom icon
-- Modify colors in `tailwind.config.js`
-- Update metadata in `app/layout.tsx`
-
-### Features
-- Add password protection
-- Implement admin dashboard
-- Create photo albums/categories
-- Add photo sharing options
-
-## 📝 Development Commands
-
-```bash
-# Development
-pnpm dev              # Start development server
-pnpm build            # Build for production
-pnpm start            # Start production server
-pnpm lint             # Run ESLint
-
-# Type checking
-pnpm type-check       # Run TypeScript compiler
-```
+TypeScript strict mode, WCAG 2.1 AA accessibility, security-first validation, and comprehensive testing utilities.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Fork the repository and create your branch from `main`
+2. Follow coding standards (TypeScript, accessibility, security)
+3. Add tests and documentation for new features
+4. Run `npm run build` to ensure type safety
+5. Submit a Pull Request with clear description
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org) - React framework
-- [Cloudinary](https://cloudinary.com) - Image management
-- [shadcn/ui](https://ui.shadcn.com) - UI components
-- [Tailwind CSS](https://tailwindcss.com) - Styling
-- [Framer Motion](https://framer.com/motion) - Animations
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-Built with ❤️ for creating beautiful wedding memories
+Built with ❤️ using [Next.js](https://nextjs.org), [Cloudinary](https://cloudinary.com), [shadcn/ui](https://ui.shadcn.com), and [Tailwind CSS](https://tailwindcss.com).

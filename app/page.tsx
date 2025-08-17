@@ -1,54 +1,78 @@
 import cloudinary from "../utils/cloudinary";
-import getBase64ImageUrl from "../utils/generateBlurPlaceholder";
+import generateBlurPlaceholder from "../utils/generateBlurPlaceholder";
 import type { ImageProps } from "../utils/types";
 import { PhotoModalHandler } from "./PhotoModalHandler";
 import { ClientGalleryWrapper } from "@/components/ClientGalleryWrapper";
 import { PhotoGallery } from "@/components/PhotoGallery";
 
-async function getImages(): Promise<ImageProps[]> {
-  const results = await cloudinary.v2.search
-    .expression(`folder:${process.env.CLOUDINARY_FOLDER}/*`)
-    .sort_by("created_at", "desc")
-    .max_results(400)
-    .with_field("context")
-    .execute();
+/**
+ * Fetches all wedding photos from Cloudinary with metadata and blur placeholders.
+ * 
+ * This function retrieves photos from the configured Cloudinary folder,
+ * transforms them into the application's ImageProps format, and generates
+ * blur placeholders for smooth loading experiences.
+ * 
+ * @returns Promise that resolves to an array of processed image data
+ * @throws {Error} If Cloudinary API fails or environment variables are missing
+ */
+async function fetchWeddingPhotos(): Promise<ImageProps[]> {
+  if (!process.env.CLOUDINARY_FOLDER) {
+    throw new Error("CLOUDINARY_FOLDER environment variable is required");
+  }
 
-  let reducedResults: ImageProps[] = [];
+  try {
+    const searchResults = await cloudinary.v2.search
+      .expression(`folder:${process.env.CLOUDINARY_FOLDER}/*`)
+      .sort_by("created_at", "desc")
+      .max_results(400)
+      .with_field("context")
+      .execute();
 
-  let i = 0;
-  for (let result of results.resources) {
-    reducedResults.push({
-      id: i,
-      height: result.height,
-      width: result.width,
-      public_id: result.public_id,
-      format: result.format,
-      guestName: result.context?.guest || "Unknown",
-      uploadDate: result.created_at,
+    const transformedImages: ImageProps[] = searchResults.resources.map((cloudinaryResource, index) => ({
+      id: index,
+      height: cloudinaryResource.height?.toString() || "480",
+      width: cloudinaryResource.width?.toString() || "720", 
+      public_id: cloudinaryResource.public_id,
+      format: cloudinaryResource.format,
+      guestName: cloudinaryResource.context?.guest || "Unknown Guest",
+      uploadDate: cloudinaryResource.created_at,
+    }));
+
+    const blurPlaceholderPromises = searchResults.resources.map((cloudinaryResource) => {
+      return generateBlurPlaceholder(cloudinaryResource);
     });
-    i++;
+    
+    const blurPlaceholders = await Promise.all(blurPlaceholderPromises);
+
+    transformedImages.forEach((image, index) => {
+      image.blurDataUrl = blurPlaceholders[index];
+    });
+
+    return transformedImages;
+
+  } catch (error) {
+    console.error("Failed to fetch wedding photos:", error);
+    throw new Error("Unable to load wedding photos. Please try again later.");
   }
-
-  const blurImagePromises = results.resources.map((image: ImageProps) => {
-    return getBase64ImageUrl(image);
-  });
-  const imagesWithBlurDataUrls = await Promise.all(blurImagePromises);
-
-  for (let i = 0; i < reducedResults.length; i++) {
-    reducedResults[i].blurDataUrl = imagesWithBlurDataUrls[i];
-  }
-
-  return reducedResults;
 }
 
-export default async function Home() {
-  const images = await getImages();
+/**
+ * Home page component that displays the wedding photo gallery.
+ * 
+ * This page serves as the main entry point for the wedding memories application.
+ * It fetches all photos at build time for optimal performance and provides
+ * both modal and gallery viewing experiences.
+ * 
+ * @returns JSX element containing the photo gallery and modal handler
+ */
+export default async function WeddingGalleryHomePage() {
+  const weddingPhotos = await fetchWeddingPhotos();
 
   return (
     <>
-      <PhotoModalHandler images={images} />
+      <PhotoModalHandler images={weddingPhotos} />
       <ClientGalleryWrapper>
-        <PhotoGallery initialImages={images} />
+        <PhotoGallery initialImages={weddingPhotos} />
       </ClientGalleryWrapper>
     </>
   );
