@@ -4,6 +4,8 @@ import type { ImageProps } from "../utils/types";
 import { ClientGalleryWrapper } from "@/components/ClientGalleryWrapper";
 import { PhotoGallery } from "@/components/PhotoGallery";
 
+export const revalidate = 0;
+
 /**
  * Fetches all wedding photos from Cloudinary with metadata and blur placeholders.
  * 
@@ -37,8 +39,8 @@ async function fetchWeddingPhotos(): Promise<ImageProps[]> {
       uploadDate: cloudinaryResource.created_at,
     }));
 
-    const blurPlaceholderPromises = searchResults.resources.map((cloudinaryResource) => {
-      return generateBlurPlaceholder(cloudinaryResource);
+    const blurPlaceholderPromises = transformedImages.map((image) => {
+      return generateBlurPlaceholder(image);
     });
     
     const blurPlaceholders = await Promise.all(blurPlaceholderPromises);

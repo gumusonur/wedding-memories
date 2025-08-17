@@ -127,13 +127,21 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
     setIsModalOpen(false);
   }, []);
 
-  // Expose refetch function globally for Upload component integration
+  // Listen for new photo uploads and add them to the gallery
   useEffect(() => {
-    (window as any).refetchPhotos = refetchWeddingPhotos;
-    return () => {
-      delete (window as any).refetchPhotos;
+    const handleNewPhoto = (event: Event) => {
+      const newPhoto = (event as CustomEvent<ImageProps>).detail;
+      setImages(prevImages => [newPhoto, ...prevImages]);
     };
-  }, [refetchWeddingPhotos]);
+
+    document.addEventListener("add-new-photo", handleNewPhoto);
+
+    return () => {
+      document.removeEventListener("add-new-photo", handleNewPhoto);
+    };
+  }, []);
+
+  
 
   // Let Next.js Image handle lazy loading automatically - no manual prefetching needed
   // Next.js Image component already handles:
