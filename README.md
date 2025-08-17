@@ -26,6 +26,7 @@ A modern wedding photo gallery built with Next.js, Cloudinary, and shadcn/ui. Gu
 ## 🚀 Quick Start
 
 1. **Clone and install**
+
    ```bash
    git clone <repository-url>
    cd wedding-memories
@@ -33,20 +34,23 @@ A modern wedding photo gallery built with Next.js, Cloudinary, and shadcn/ui. Gu
    ```
 
 2. **Configure environment**
+
    ```bash
    cp .env.example .env
    # Edit .env with your Cloudinary credentials and couple names
    ```
 
 3. **Start development**
+
    ```bash
    pnpm dev
    # Open http://localhost:3000
    ```
 
 ### Required Environment Variables
+
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name
-- `CLOUDINARY_API_KEY` & `CLOUDINARY_API_SECRET` - API credentials  
+- `CLOUDINARY_API_KEY` & `CLOUDINARY_API_SECRET` - API credentials
 - `CLOUDINARY_FOLDER` - Photo storage folder
 - `NEXT_PUBLIC_BRIDE_NAME` & `NEXT_PUBLIC_GROOM_NAME` - Display names
 
@@ -97,6 +101,12 @@ TypeScript strict mode, WCAG 2.1 AA accessibility, security-first validation, an
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## 🙏 Acknowledgements
+
+This project was bootstrapped with the
+[Next.js Image Gallery Starter](https://vercel.com/templates/next.js/image-gallery-starter) by Vercel.
+
 ---
 
 Built with ❤️ using [Next.js](https://nextjs.org), [Cloudinary](https://cloudinary.com), [shadcn/ui](https://ui.shadcn.com), and [Tailwind CSS](https://tailwindcss.com).
+

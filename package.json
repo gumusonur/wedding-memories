@@ -1,10 +1,14 @@
 {
+  "name": "wedding-memories",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -16,7 +20,6 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
-    "eslint-config-next": "^15.4.6",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.539.0",
     "next": "latest",
@@ -37,6 +40,7 @@
     "@types/react": "19.1.10",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
+    "eslint-config-next": "^15.4.6",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
