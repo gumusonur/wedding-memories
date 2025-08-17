@@ -15,9 +15,9 @@ interface PageProps {
 async function getPhoto(photoId: string): Promise<ImageProps | null> {
   const results = await getResults();
 
-  let reducedResults: ImageProps[] = [];
+  const reducedResults: ImageProps[] = [];
   let i = 0;
-  for (let result of results.resources) {
+  for (const result of results.resources) {
     reducedResults.push({
       id: i,
       height: result.height,

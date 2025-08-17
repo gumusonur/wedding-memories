@@ -72,7 +72,7 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
             <span className="text-primary">✨</span>
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Hello! You're viewing <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_GROOM_NAME}</span> & <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_BRIDE_NAME}</span>'s wedding memories.
+            Hello! You&apos;re viewing <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_GROOM_NAME || "Groom"}</span> & <span className="font-medium text-primary">{process.env.NEXT_PUBLIC_BRIDE_NAME || "Bride"}</span>&apos;s wedding memories.
             <br className="hidden sm:block" />
             Please share your name so we can credit any photos you add.
           </DialogDescription>
@@ -98,7 +98,7 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
         </form>
         
         <p className="text-xs text-muted-foreground text-center mt-4">
-          We'll remember your name for future visits
+          We&apos;ll remember your name for future visits
         </p>
       </DialogContent>
     </Dialog>
