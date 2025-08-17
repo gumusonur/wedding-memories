@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import type { ImageProps } from "../utils/types";
+import { getOptimizedImageProps, prefetchOnInteraction } from "../utils/imageOptimization";
+import CachedModal from "./CachedModal";
 
 interface PhotoGalleryProps {
   initialImages: ImageProps[];
@@ -52,17 +53,17 @@ function generatePhotoAltText(guestName?: string, photoIndex?: number): string {
  * Handles keyboard navigation for photo gallery accessibility.
  * 
  * @param event - Keyboard event
- * @param photoId - ID of the photo to navigate to
- * @param router - Next.js router instance
+ * @param photoIndex - Index of the photo to open
+ * @param onOpenModal - Function to open modal with specific photo
  */
 function handlePhotoKeyNavigation(
   event: React.KeyboardEvent,
-  photoId: number,
-  router: ReturnType<typeof useRouter>
+  photoIndex: number,
+  onOpenModal: (index: number) => void
 ): void {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    router.push(`/?photoId=${photoId}`, { scroll: false });
+    onOpenModal(photoIndex);
   }
 }
 
@@ -77,7 +78,10 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const [images, setImages] = useState<ImageProps[]>(initialImages);
   const [isLoading, setIsLoading] = useState(false);
   const [lastRefetchTime, setLastRefetchTime] = useState<Date>(new Date());
-  const router = useRouter();
+  
+  // Modal state - no router needed
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
   /**
    * Refetches photos from the server to update the gallery.
@@ -109,11 +113,19 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   }, []);
 
   /**
-   * Navigates to a specific photo with accessibility considerations.
+   * Opens modal with specific photo - instant client-side action.
    */
-  const navigateToPhoto = useCallback((photoId: number) => {
-    router.push(`/?photoId=${photoId}`, { scroll: false });
-  }, [router]);
+  const openPhotoModal = useCallback((photoIndex: number) => {
+    setSelectedPhotoIndex(photoIndex);
+    setIsModalOpen(true);
+  }, []);
+
+  /**
+   * Closes the modal.
+   */
+  const closePhotoModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
   // Expose refetch function globally for Upload component integration
   useEffect(() => {
@@ -122,6 +134,13 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       delete (window as any).refetchPhotos;
     };
   }, [refetchWeddingPhotos]);
+
+  // Let Next.js Image handle lazy loading automatically - no manual prefetching needed
+  // Next.js Image component already handles:
+  // - Intersection Observer for lazy loading
+  // - Automatic prefetching based on viewport
+  // - Responsive image loading
+  // This eliminates the need for manual scroll-based prefetching
 
   if (images.length === 0 && !isLoading) {
     return (
@@ -169,25 +188,20 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
             key={id}
             role="gridcell"
             className="after:content group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:shadow-highlight focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-            onClick={() => navigateToPhoto(id)}
-            onKeyDown={(e) => handlePhotoKeyNavigation(e, id, router)}
+            onClick={() => openPhotoModal(index)}
+            onKeyDown={(e) => handlePhotoKeyNavigation(e, index, openPhotoModal)}
+            onMouseEnter={() => prefetchOnInteraction({ id, public_id, format, blurDataUrl, guestName, uploadDate, height: "480", width: "720" }, 'full')}
             tabIndex={0}
             aria-label={`Open photo ${index + 1} ${guestName ? `shared by ${guestName}` : ''}`}
           >
             <Image
-              alt={generatePhotoAltText(guestName, index)}
+              {...getOptimizedImageProps(
+                { id, public_id, format, blurDataUrl, guestName, uploadDate, height: "480", width: "720" },
+                'gallery',
+                { priority: index < 6, quality: 'medium' }
+              )}
               className="transform rounded-lg brightness-90 transition will-change-auto group-hover:brightness-110 group-focus:brightness-110"
               style={{ transform: "translate3d(0, 0, 0)" }}
-              placeholder="blur"
-              blurDataURL={blurDataUrl}
-              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/c_scale,w_720/${public_id}.${format}`}
-              width={720}
-              height={480}
-              sizes="(max-width: 640px) 100vw,
-                (max-width: 1280px) 50vw,
-                (max-width: 1536px) 33vw,
-                25vw"
-              loading={index < 6 ? "eager" : "lazy"}
             />
             {(guestName || uploadDate) && (
               <div 
@@ -219,6 +233,14 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       >
         Gallery last updated: {lastRefetchTime.toLocaleTimeString()}
       </div>
+
+      {/* Cached modal - uses exact same images as gallery for zero network requests */}
+      <CachedModal
+        images={images}
+        isOpen={isModalOpen}
+        initialIndex={selectedPhotoIndex}
+        onClose={closePhotoModal}
+      />
     </div>
   );
 }
