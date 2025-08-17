@@ -1,7 +1,6 @@
 import cloudinary from "../utils/cloudinary";
 import generateBlurPlaceholder from "../utils/generateBlurPlaceholder";
 import type { ImageProps } from "../utils/types";
-import { PhotoModalHandler } from "./PhotoModalHandler";
 import { ClientGalleryWrapper } from "@/components/ClientGalleryWrapper";
 import { PhotoGallery } from "@/components/PhotoGallery";
 
@@ -61,20 +60,17 @@ async function fetchWeddingPhotos(): Promise<ImageProps[]> {
  * 
  * This page serves as the main entry point for the wedding memories application.
  * It fetches all photos at build time for optimal performance and provides
- * both modal and gallery viewing experiences.
+ * a client-side modal experience using cached photos for instant display.
  * 
- * @returns JSX element containing the photo gallery and modal handler
+ * @returns JSX element containing the photo gallery with integrated modal
  */
 export default async function WeddingGalleryHomePage() {
   const weddingPhotos = await fetchWeddingPhotos();
 
   return (
-    <>
-      <PhotoModalHandler images={weddingPhotos} />
-      <ClientGalleryWrapper>
-        <PhotoGallery initialImages={weddingPhotos} />
-      </ClientGalleryWrapper>
-    </>
+    <ClientGalleryWrapper>
+      <PhotoGallery initialImages={weddingPhotos} />
+    </ClientGalleryWrapper>
   );
 }
 
