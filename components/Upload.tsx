@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+
 import { Button } from "./ui/button";
 import {
   Drawer,
@@ -39,13 +40,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import type { UploadFile } from "../utils/types";
+import type { UploadFile, ImageProps } from "../utils/types";
 
 interface UploadProps {
   currentGuestName?: string;
 }
 
 export const Upload = ({ currentGuestName }: UploadProps) => {
+  
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [guestName, setGuestName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -339,6 +341,20 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           setFiles(prev => prev.map(f => 
             f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f
           ));
+
+          const newPhoto: ImageProps = {
+            id: data.public_id,
+            public_id: data.public_id,
+            format: data.format,
+            blurDataUrl: '', // Will be generated on next page load
+            guestName: data.context?.guest || 'Unknown Guest',
+            uploadDate: data.created_at,
+            height: data.height.toString(),
+            width: data.width.toString(),
+          };
+
+          document.dispatchEvent(new CustomEvent("add-new-photo", { detail: newPhoto }));
+
           toast({
             title: "Photo added successfully!",
             description: `${uploadFile.file.name} has been added to the gallery.`,
@@ -379,39 +395,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     
     setIsUploading(true);
     
-    let successCount = 0;
-    for (const file of pendingFiles) {
-      try {
-        await uploadFile(file);
-        successCount++;
-      } catch (error) {
-        // Error handling is already done in uploadFile
-      }
-    }
+    await Promise.all(pendingFiles.map(file => uploadFile(file)));
     
     setIsUploading(false);
     
-    if (successCount > 0) {
-      toast({
-        title: "Photos added!",
-        description: "Loading new photos...",
-      });
-      
-      // Refetch photos with retries for Cloudinary indexing delay
-      const refetchWithRetry = async (attempt = 1, maxAttempts = 3) => {
-        if ((window as any).refetchPhotos) {
-          await (window as any).refetchPhotos();
-          
-          // If this isn't the last attempt, schedule another refetch
-          if (attempt < maxAttempts) {
-            setTimeout(() => refetchWithRetry(attempt + 1, maxAttempts), 2000);
-          }
-        }
-      };
-      
-      // Start first refetch after 2 seconds to allow Cloudinary indexing
-      setTimeout(() => refetchWithRetry(), 2000);
-    }
+    // Close the dialog after a short delay
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 500);
   };
 
   const handleNameChange = () => {
