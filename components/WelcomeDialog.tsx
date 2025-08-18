@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { useState, useEffect } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import {
   Dialog,
   DialogContent,
@@ -10,65 +10,51 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { useGuestName, useSetGuestName } from "../store/useAppStore";
+} from './ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useGuestName, useSetGuestName } from '../store/useAppStore';
 
-interface WelcomeDialogProps {
-  onNameSet: (name: string) => void;
-}
-
-export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
-  // Zustand store hooks
+export function WelcomeDialog() {
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
-
-  // Local state
-  const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setMounted(true);
+  const [name, setName] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    // Check if user has already provided their name (from Zustand store)
+  useEffect(() => {
+    // Only show the dialog if the guest name is not already set.
+    // This check runs only once when the component mounts.
     if (!guestName) {
-      // Small delay to ensure the app has loaded
-      setTimeout(() => setIsOpen(true), 1000);
-    } else {
-      onNameSet(guestName);
+      setIsDialogOpen(true);
     }
-  }, [guestName, onNameSet]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!name.trim()) {
       toast({
-        variant: "destructive",
-        title: "Name required",
-        description: "Please enter your name to continue.",
+        variant: 'destructive',
+        title: 'Name required',
+        description: 'Please enter your name to continue.',
       });
       return;
     }
-
     const trimmedName = name.trim();
     setGuestName(trimmedName);
-    onNameSet(trimmedName);
-    setIsOpen(false);
-
+    setIsDialogOpen(false); // Close dialog on successful submission
     toast({
-      title: "Welcome!",
-      description: `Nice to meet you, ${name.trim()}! You can now upload and view photos.`,
+      title: 'Welcome!',
+      description: `Nice to meet you, ${trimmedName}! You can now upload and view photos.`,
     });
   };
 
-  // Don't render on server
-  if (!mounted) return null;
+  if (!isDialogOpen) {
+    return null;
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent
         className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md sm:max-w-lg"
         onInteractOutside={(e) => e.preventDefault()}
@@ -79,13 +65,13 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
             <span className="text-primary">✨</span>
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Hello! You&apos;re viewing{" "}
+            Hello! You&apos;re viewing{' '}
             <span className="font-medium text-primary">
-              {process.env.NEXT_PUBLIC_GROOM_NAME || "Groom"}
-            </span>{" "}
-            &{" "}
+              {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'}
+            </span>{' '}
+            &{' '}
             <span className="font-medium text-primary">
-              {process.env.NEXT_PUBLIC_BRIDE_NAME || "Bride"}
+              {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}
             </span>
             &apos;s wedding memories.
             <br className="hidden sm:block" />
