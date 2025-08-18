@@ -419,11 +419,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     await Promise.all(pendingFiles.map((file) => uploadFile(file)));
 
     setIsUploading(false);
-
-    // Close the dialog after a short delay
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 500);
   };
 
   const handleNameChange = () => {
@@ -450,10 +445,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setFiles((prev) => prev.filter((f) => f.status === 'pending' || f.status === 'uploading'));
   };
 
+  const handleViewGallery = () => {
+    setIsOpen(false);
+    // Scroll to top of page to show newly added photos
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const hasFiles = files.length > 0;
   const hasCompleted = files.some((f) => f.status === 'success' || f.status === 'error');
   const pendingCount = files.filter((f) => f.status === 'pending').length;
   const uploadingCount = files.filter((f) => f.status === 'uploading').length;
+  const successCount = files.filter((f) => f.status === 'success').length;
+  const hasSuccessfulUploads = successCount > 0;
   const pendingFiles = files.filter((f) => f.status === 'pending');
   const selectedPendingFiles = pendingFiles.filter((f) => selectedFiles.has(f.id));
   const allPendingSelected =
@@ -491,6 +494,20 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   // Shared content component for both Dialog and Drawer
   const UploadContent = () => (
     <div className="grid gap-4 p-4 overflow-auto max-h-[60vh] lg:max-h-[70vh]">
+      {/* Success indicator when uploads are complete */}
+      {hasSuccessfulUploads && pendingCount === 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-2 text-green-700 font-medium mb-2">
+            <Check className="h-5 w-5" />
+            Photos Successfully Added!
+          </div>
+          <p className="text-sm text-green-600">
+            {successCount} photo{successCount !== 1 ? 's' : ''} have been added to the wedding gallery.
+            Use the &ldquo;View Gallery&rdquo; button below to see your photos.
+          </p>
+        </div>
+      )}
+
       {/* Smart drag & drop area that adapts to content */}
       <div className="space-y-3">
         <div className="relative">
@@ -872,19 +889,32 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           <UploadContent />
 
           <DialogFooter className="flex-shrink-0">
-            <div className="grid grid-cols-2 gap-2 w-full">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
-                Close
-              </Button>
-              <Button
-                onClick={handleUploadAll}
-                disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
-              >
-                {isUploading
-                  ? `Adding... (${uploadingCount})`
-                  : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
-              </Button>
-            </div>
+            {hasSuccessfulUploads && pendingCount === 0 ? (
+              // Show "View Gallery" and "Close" when uploads are complete
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
+                  View Gallery ({successCount} added)
+                </Button>
+              </div>
+            ) : (
+              // Show standard upload interface
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                  Close
+                </Button>
+                <Button
+                  onClick={handleUploadAll}
+                  disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
+                >
+                  {isUploading
+                    ? `Adding... (${uploadingCount})`
+                    : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
+                </Button>
+              </div>
+            )}
           </DialogFooter>
         </DialogContent>
         <GuestNameEditDialog />
@@ -930,21 +960,36 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         <UploadContent />
 
         <DrawerFooter>
-          <div className="grid grid-cols-2 gap-2">
-            <DrawerClose asChild>
-              <Button variant="outline" className="w-full">
-                Close
+          {hasSuccessfulUploads && pendingCount === 0 ? (
+            // Show "View Gallery" and "Close" when uploads are complete
+            <div className="grid grid-cols-2 gap-2">
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full">
+                  Close
+                </Button>
+              </DrawerClose>
+              <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
+                View Gallery ({successCount} added)
               </Button>
-            </DrawerClose>
-            <Button
-              onClick={handleUploadAll}
-              disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
-            >
-              {isUploading
-                ? `Adding... (${uploadingCount})`
-                : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
-            </Button>
-          </div>
+            </div>
+          ) : (
+            // Show standard upload interface
+            <div className="grid grid-cols-2 gap-2">
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full">
+                  Close
+                </Button>
+              </DrawerClose>
+              <Button
+                onClick={handleUploadAll}
+                disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
+              >
+                {isUploading
+                  ? `Adding... (${uploadingCount})`
+                  : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
+              </Button>
+            </div>
+          )}
         </DrawerFooter>
       </DrawerContent>
       <GuestNameEditDialog />
