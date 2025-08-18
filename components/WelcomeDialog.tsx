@@ -12,23 +12,23 @@ import {
   DialogTitle,
 } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useGuestName, useSetGuestName } from '../store/useAppStore';
+import { useGuestName, useSetGuestName, useHasHydrated } from '../store/useAppStore';
 
 export function WelcomeDialog() {
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
+  const hasHydrated = useHasHydrated();
   const { toast } = useToast();
 
   const [name, setName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Only show the dialog if the guest name is not already set.
-    // This check runs only once when the component mounts.
-    if (!guestName) {
+    // Only show the dialog if the store has hydrated and guest name is not set
+    if (hasHydrated && !guestName) {
       setIsDialogOpen(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasHydrated, guestName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
