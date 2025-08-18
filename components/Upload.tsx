@@ -352,7 +352,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             public_id: data.public_id,
             format: data.format,
             blurDataUrl: '', // Will be generated on next page load
-            guestName: data.context?.guest || 'Unknown Guest',
+            guestName: guestName || 'Unknown Guest', // Use the current guest name from store
             uploadDate: data.created_at,
             height: data.height.toString(),
             width: data.width.toString(),
