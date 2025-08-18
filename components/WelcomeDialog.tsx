@@ -60,12 +60,11 @@ export function WelcomeDialog() {
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="text-center space-y-3">
-          <DialogTitle className="text-2xl font-serif font-light">
+          <DialogTitle className="text-xl font-serif font-light">
             Welcome to our Wedding Gallery!
-            <span className="text-primary">✨</span>
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Hello! You&apos;re viewing{' '}
+            Hi! You&apos;re viewing{' '}
             <span className="font-medium text-primary">
               {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'}
             </span>{' '}
@@ -73,9 +72,7 @@ export function WelcomeDialog() {
             <span className="font-medium text-primary">
               {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}
             </span>
-            &apos;s wedding memories.
-            <br className="hidden sm:block" />
-            Please share your name so we can credit any photos you add.
+            &apos;s wedding memories. Please share your name so we can credit any photos you add.
           </DialogDescription>
         </DialogHeader>
 
