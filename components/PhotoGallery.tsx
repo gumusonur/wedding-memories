@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import Image from "next/image";
 import type { ImageProps } from "../utils/types";
 import { getOptimizedImageProps, prefetchOnInteraction } from "../utils/imageOptimization";
 import CachedModal from "./CachedModal";
+import { usePhotos, useSetPhotos, usePhotoModalOpen, useSelectedPhotoIndex, useOpenPhotoModal, useClosePhotoModal, useIsLoadingPhotos, useLastRefreshTime, useSetIsLoadingPhotos, useRefreshPhotos } from "../store/useAppStore";
 
 interface PhotoGalleryProps {
   initialImages: ImageProps[];
@@ -75,13 +76,24 @@ function handlePhotoKeyNavigation(
  * proper focus management.
  */
 export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
-  const [images, setImages] = useState<ImageProps[]>(initialImages);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRefetchTime, setLastRefetchTime] = useState<Date>(new Date());
-  
-  // Modal state - no router needed
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  // Zustand store hooks
+  const photos = usePhotos();
+  const setPhotos = useSetPhotos();
+  const isModalOpen = usePhotoModalOpen();
+  const selectedPhotoIndex = useSelectedPhotoIndex();
+  const openModal = useOpenPhotoModal();
+  const closeModal = useClosePhotoModal();
+  const isLoading = useIsLoadingPhotos();
+  const lastRefreshTime = useLastRefreshTime();
+  const setIsLoading = useSetIsLoadingPhotos();
+  const refresh = useRefreshPhotos();
+
+  // Initialize photos from server-side props
+  useEffect(() => {
+    if (initialImages.length > 0 && photos.length === 0) {
+      setPhotos(initialImages);
+    }
+  }, [initialImages, photos.length, setPhotos]);
 
   /**
    * Refetches photos from the server to update the gallery.
@@ -98,8 +110,8 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       
       if (response.ok) {
         const refreshedImages = await response.json();
-        setImages(refreshedImages);
-        setLastRefetchTime(new Date());
+        setPhotos(refreshedImages);
+        refresh();
         return refreshedImages.length;
       } else {
         console.error("Failed to refetch photos:", response.statusText);
@@ -110,36 +122,16 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       setIsLoading(false);
     }
     return 0;
-  }, []);
+  }, [setPhotos, setIsLoading, refresh]);
 
   /**
    * Opens modal with specific photo - instant client-side action.
    */
   const openPhotoModal = useCallback((photoIndex: number) => {
-    setSelectedPhotoIndex(photoIndex);
-    setIsModalOpen(true);
-  }, []);
+    openModal(photoIndex);
+  }, [openModal]);
 
-  /**
-   * Closes the modal.
-   */
-  const closePhotoModal = useCallback(() => {
-    setIsModalOpen(false);
-  }, []);
-
-  // Listen for new photo uploads and add them to the gallery
-  useEffect(() => {
-    const handleNewPhoto = (event: Event) => {
-      const newPhoto = (event as CustomEvent<ImageProps>).detail;
-      setImages(prevImages => [newPhoto, ...prevImages]);
-    };
-
-    document.addEventListener("add-new-photo", handleNewPhoto);
-
-    return () => {
-      document.removeEventListener("add-new-photo", handleNewPhoto);
-    };
-  }, []);
+  // Note: Custom event handling will be replaced by direct store usage in Upload component
 
   
 
@@ -150,7 +142,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   // - Responsive image loading
   // This eliminates the need for manual scroll-based prefetching
 
-  if (images.length === 0 && !isLoading) {
+  if (photos.length === 0 && !isLoading) {
     return (
       <div 
         className="text-center py-24 text-muted-foreground"
@@ -189,9 +181,9 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       <div 
         className="columns-1 gap-5 sm:columns-2 xl:columns-3 2xl:columns-4"
         role="grid"
-        aria-label={`Wedding photo gallery with ${images.length} photos`}
+        aria-label={`Wedding photo gallery with ${photos.length} photos`}
       >
-        {images.map(({ id, public_id, format, blurDataUrl, guestName, uploadDate }, index) => (
+        {photos.map(({ id, public_id, format, blurDataUrl, guestName, uploadDate }, index) => (
           <div
             key={id}
             role="gridcell"
@@ -239,15 +231,15 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
         aria-live="polite"
         aria-atomic="true"
       >
-        Gallery last updated: {lastRefetchTime.toLocaleTimeString()}
+        Gallery last updated: {lastRefreshTime.toLocaleTimeString()}
       </div>
 
       {/* Cached modal - uses exact same images as gallery for zero network requests */}
       <CachedModal
-        images={images}
+        images={photos}
         isOpen={isModalOpen}
         initialIndex={selectedPhotoIndex}
-        onClose={closePhotoModal}
+        onClose={closeModal}
       />
     </div>
   );
