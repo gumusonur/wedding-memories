@@ -124,4 +124,3 @@ This project was bootstrapped with the
 ---
 
 Built with ❤️ using [Next.js](https://nextjs.org), [Cloudinary](https://cloudinary.com), [shadcn/ui](https://ui.shadcn.com), and [Tailwind CSS](https://tailwindcss.com).
-

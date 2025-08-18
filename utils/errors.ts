@@ -1,6 +1,6 @@
 /**
  * Error handling utilities and custom error classes for the wedding gallery application.
- * 
+ *
  * This module follows CLAUDE.md principles for proper error handling:
  * - Fail fast with clear validation
  * - Specific error types with context
@@ -15,7 +15,7 @@
 export abstract class BaseApplicationError extends Error {
   abstract readonly code: string;
   abstract readonly userMessage: string;
-  
+
   constructor(
     message: string,
     public readonly context?: Record<string, any>,
@@ -23,7 +23,7 @@ export abstract class BaseApplicationError extends Error {
   ) {
     super(message);
     this.name = this.constructor.name;
-    
+
     // Maintain proper stack trace in V8
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -48,7 +48,7 @@ export abstract class BaseApplicationError extends Error {
  */
 export class ValidationError extends BaseApplicationError {
   readonly code = 'VALIDATION_ERROR';
-  
+
   constructor(
     message: string,
     public readonly field?: string,
@@ -71,7 +71,7 @@ export class ValidationError extends BaseApplicationError {
  */
 export class UploadError extends BaseApplicationError {
   readonly code = 'UPLOAD_ERROR';
-  
+
   constructor(
     message: string,
     public readonly fileName?: string,
@@ -93,7 +93,7 @@ export class UploadError extends BaseApplicationError {
  */
 export class ConfigurationError extends BaseApplicationError {
   readonly code = 'CONFIGURATION_ERROR';
-  
+
   constructor(
     message: string,
     public readonly missingVariables?: string[],
@@ -113,7 +113,7 @@ export class ConfigurationError extends BaseApplicationError {
  */
 export class ExternalServiceError extends BaseApplicationError {
   readonly code = 'EXTERNAL_SERVICE_ERROR';
-  
+
   constructor(
     message: string,
     public readonly service: string,
@@ -134,12 +134,8 @@ export class ExternalServiceError extends BaseApplicationError {
  */
 export class NetworkError extends BaseApplicationError {
   readonly code = 'NETWORK_ERROR';
-  
-  constructor(
-    message: string,
-    context?: Record<string, any>,
-    originalError?: Error
-  ) {
+
+  constructor(message: string, context?: Record<string, any>, originalError?: Error) {
     super(message, context, originalError);
   }
 
@@ -154,7 +150,7 @@ export class NetworkError extends BaseApplicationError {
  */
 export class FileProcessingError extends BaseApplicationError {
   readonly code = 'FILE_PROCESSING_ERROR';
-  
+
   constructor(
     message: string,
     public readonly fileName?: string,
@@ -167,7 +163,7 @@ export class FileProcessingError extends BaseApplicationError {
 
   get userMessage(): string {
     const fileContext = this.fileName ? ` "${this.fileName}"` : '';
-    
+
     switch (this.operation) {
       case 'validation':
         return `File${fileContext} is not a supported image format. Please select JPG, PNG, GIF, or WebP files.`;
@@ -187,7 +183,7 @@ export class FileProcessingError extends BaseApplicationError {
  */
 export class RateLimitError extends BaseApplicationError {
   readonly code = 'RATE_LIMIT_ERROR';
-  
+
   constructor(
     message: string,
     public readonly retryAfter?: number,
@@ -212,34 +208,34 @@ export class RateLimitError extends BaseApplicationError {
 export class ErrorHandler {
   /**
    * Processes an error and returns appropriate response data.
-   * 
+   *
    * @param error - The error to process
    * @param context - Additional context for logging
    * @returns Object with status code, user message, and logging data
    */
   static handleError(error: unknown, context?: Record<string, any>) {
     const logContext = { ...context, timestamp: new Date().toISOString() };
-    
+
     if (error instanceof BaseApplicationError) {
       console.error(`Application Error [${error.code}]:`, error.message, {
         ...logContext,
         context: error.context,
         stack: error.stack,
       });
-      
+
       return {
         statusCode: this.getStatusCodeForError(error),
         clientError: error.toClientError(),
         shouldRetry: this.shouldRetryError(error),
       };
     }
-    
+
     if (error instanceof Error) {
       console.error('Unexpected Error:', error.message, {
         ...logContext,
         stack: error.stack,
       });
-      
+
       return {
         statusCode: 500,
         clientError: {
@@ -249,9 +245,9 @@ export class ErrorHandler {
         shouldRetry: true,
       };
     }
-    
+
     console.error('Unknown Error:', error, logContext);
-    
+
     return {
       statusCode: 500,
       clientError: {
@@ -261,7 +257,7 @@ export class ErrorHandler {
       shouldRetry: true,
     };
   }
-  
+
   /**
    * Determines appropriate HTTP status code for application errors.
    */
@@ -285,23 +281,20 @@ export class ErrorHandler {
         return 500;
     }
   }
-  
+
   /**
    * Determines if an error is retryable.
    */
   private static shouldRetryError(error: BaseApplicationError): boolean {
-    const retryableErrors = [
-      'EXTERNAL_SERVICE_ERROR',
-      'NETWORK_ERROR',
-    ];
-    
+    const retryableErrors = ['EXTERNAL_SERVICE_ERROR', 'NETWORK_ERROR'];
+
     return retryableErrors.includes(error.code);
   }
 }
 
 /**
  * Utility function to safely extract error message from unknown error types.
- * 
+ *
  * @param error - Unknown error object
  * @returns Safe error message string
  */
@@ -309,21 +302,21 @@ export function getSafeErrorMessage(error: unknown): string {
   if (error instanceof BaseApplicationError) {
     return error.userMessage;
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   if (typeof error === 'string') {
     return error;
   }
-  
+
   return 'An unexpected error occurred';
 }
 
 /**
  * Type guard to check if an error is a specific application error type.
- * 
+ *
  * @param error - Error to check
  * @param errorClass - Error class to check against
  * @returns Type predicate for the error class
@@ -337,7 +330,7 @@ export function isErrorOfType<T extends BaseApplicationError>(
 
 /**
  * Wraps async functions with standardized error handling.
- * 
+ *
  * @param fn - Async function to wrap
  * @param context - Context for error logging
  * @returns Wrapped function with error handling

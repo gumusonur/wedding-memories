@@ -1,6 +1,6 @@
 /**
  * Internationalization utilities and constants for the wedding gallery application.
- * 
+ *
  * This file provides a foundation for future internationalization support,
  * following the CLAUDE.md standards for inclusive development.
  */
@@ -35,12 +35,12 @@ export const UI_TEXT = {
     gallery: {
       title: 'Wedding Memories',
       noPhotos: 'No photos yet',
-      noPhotosDescription: (groomName: string, brideName: string) => 
+      noPhotosDescription: (groomName: string, brideName: string) =>
         `Be the first to share a memory from ${groomName} & ${brideName}'s special day!`,
       loadingPhotos: 'Loading new photos...',
       photoCount: (count: number) => `${count} photo${count !== 1 ? 's' : ''}`,
       sharedBy: (name: string) => `Shared by ${name}`,
-      openPhoto: (index: number, guestName?: string) => 
+      openPhoto: (index: number, guestName?: string) =>
         `Open photo ${index + 1}${guestName ? ` shared by ${guestName}` : ''}`,
       photoAltText: (groomName: string, brideName: string, guestName?: string, index?: number) => {
         if (guestName && guestName !== 'Unknown Guest') {
@@ -49,11 +49,11 @@ export const UI_TEXT = {
         return `Wedding photo${index ? ` #${index + 1}` : ''} - ${groomName} & ${brideName} wedding memories`;
       },
     },
-    
+
     // Upload Component
     upload: {
       title: 'Share Wedding Memories',
-      description: (groomName: string, brideName: string) => 
+      description: (groomName: string, brideName: string) =>
         `Select photos to add to ${groomName} & ${brideName}'s wedding gallery`,
       addPhotos: 'Add Photos',
       addingAs: 'Adding as:',
@@ -72,12 +72,12 @@ export const UI_TEXT = {
       close: 'Close',
       done: 'Done',
     },
-    
+
     // Error Messages
     errors: {
-      invalidFileType: (fileName: string) => 
+      invalidFileType: (fileName: string) =>
         `${fileName} is not a supported image format. Please select JPG, PNG, GIF, or WebP files.`,
-      duplicatePhotos: (count: number, fileNames: string[]) => 
+      duplicatePhotos: (count: number, fileNames: string[]) =>
         `${count} photo${count > 1 ? 's' : ''} already selected: ${fileNames.slice(0, 2).join(', ')}${fileNames.length > 2 ? ` and ${fileNames.length - 2} more` : ''}`,
       nameRequired: 'Please enter your name before adding photos.',
       uploadFailed: (fileName: string) => `Failed to add ${fileName}`,
@@ -86,16 +86,17 @@ export const UI_TEXT = {
       serverError: 'Server error. Please try again later.',
       dateUnavailable: 'Date unavailable',
     },
-    
+
     // Success Messages
     success: {
       photosAdded: (count: number) => `${count} photo${count !== 1 ? 's' : ''} ready to add`,
       photoUploaded: (fileName: string) => `${fileName} has been added to the gallery.`,
       photosUploading: 'Loading new photos...',
       nameUpdated: (name: string) => `Your name has been changed to ${name}`,
-      photosRemoved: (count: number) => `${count} photo${count !== 1 ? 's' : ''} removed from the list.`,
+      photosRemoved: (count: number) =>
+        `${count} photo${count !== 1 ? 's' : ''} removed from the list.`,
     },
-    
+
     // Accessibility
     accessibility: {
       loading: 'Loading',
@@ -104,7 +105,7 @@ export const UI_TEXT = {
       selectedFiles: (count: number) => `Selected Files (${count})`,
     },
   },
-  
+
   'en-GB': {
     // British English variants can be added here when needed
     // For now, use the same as en-US but structure is ready for differences
@@ -113,7 +114,7 @@ export const UI_TEXT = {
 
 /**
  * Gets localized text for a given key path and locale.
- * 
+ *
  * @param locale - The locale to use for text retrieval
  * @param keyPath - Path to the text content (e.g., 'gallery.title')
  * @param params - Parameters for dynamic text generation
@@ -125,11 +126,11 @@ export function getLocalizedText(
   ...params: any[]
 ): string {
   const texts = UI_TEXT[locale] || UI_TEXT[DEFAULT_LOCALE];
-  
+
   try {
     const keys = keyPath.split('.');
     let current: any = texts;
-    
+
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
         current = current[key];
@@ -138,13 +139,12 @@ export function getLocalizedText(
         return keyPath; // Fallback to key path
       }
     }
-    
+
     if (typeof current === 'function') {
       return current(...params);
     }
-    
+
     return current || keyPath;
-    
   } catch (error) {
     console.warn(`Error getting localized text for key: ${keyPath}`, error);
     return keyPath;
@@ -153,7 +153,7 @@ export function getLocalizedText(
 
 /**
  * Formats a date according to the user's locale preferences.
- * 
+ *
  * @param date - Date to format
  * @param locale - Locale for formatting
  * @param options - Intl.DateTimeFormat options
@@ -181,35 +181,32 @@ export function formatLocalizedDate(
 
 /**
  * Detects the user's preferred locale from browser settings.
- * 
+ *
  * @returns Best matching supported locale
  */
 export function detectUserLocale(): SupportedLocale {
   if (typeof window === 'undefined') {
     return DEFAULT_LOCALE;
   }
-  
-  const browserLocales = [
-    navigator.language,
-    ...navigator.languages,
-  ];
-  
+
+  const browserLocales = [navigator.language, ...navigator.languages];
+
   for (const browserLocale of browserLocales) {
     // Check for exact match
     if (browserLocale in SUPPORTED_LOCALES) {
       return browserLocale as SupportedLocale;
     }
-    
+
     // Check for language match (e.g., 'en' matches 'en-US')
     const languageCode = browserLocale.split('-')[0];
-    const matchingLocale = Object.keys(SUPPORTED_LOCALES).find(
-      locale => locale.startsWith(languageCode)
+    const matchingLocale = Object.keys(SUPPORTED_LOCALES).find((locale) =>
+      locale.startsWith(languageCode)
     );
-    
+
     if (matchingLocale) {
       return matchingLocale as SupportedLocale;
     }
   }
-  
+
   return DEFAULT_LOCALE;
 }

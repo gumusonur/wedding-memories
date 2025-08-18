@@ -6,28 +6,31 @@ interface AppState {
   // Guest management
   guestName: string;
   setGuestName: (name: string) => void;
-  
+
   // Photo gallery state
   photos: ImageProps[];
   setPhotos: (photos: ImageProps[]) => void;
   addPhoto: (photo: ImageProps) => void;
-  
+
   // Modal state
   isPhotoModalOpen: boolean;
   selectedPhotoIndex: number;
   openPhotoModal: (index: number) => void;
   closePhotoModal: () => void;
-  
+
   // Upload modal state
   isUploadModalOpen: boolean;
   openUploadModal: () => void;
   closeUploadModal: () => void;
-  
+
   // Gallery refresh state
   lastRefreshTime: Date;
   isLoadingPhotos: boolean;
   setIsLoadingPhotos: (loading: boolean) => void;
   refreshPhotos: () => void;
+
+  // Internal state
+  _hasHydrated: boolean;
 }
 
 export const useAppStore = create<AppState>()(
@@ -36,38 +39,41 @@ export const useAppStore = create<AppState>()(
       // Guest management
       guestName: '',
       setGuestName: (name: string) => set({ guestName: name }),
-      
+
       // Photo gallery state
       photos: [],
       setPhotos: (photos: ImageProps[]) => set({ photos }),
-      addPhoto: (photo: ImageProps) => 
-        set((state) => ({ 
-          photos: [photo, ...state.photos] 
+      addPhoto: (photo: ImageProps) =>
+        set((state) => ({
+          photos: [photo, ...state.photos],
         })),
-      
+
       // Modal state
       isPhotoModalOpen: false,
       selectedPhotoIndex: 0,
-      openPhotoModal: (index: number) => 
-        set({ 
-          isPhotoModalOpen: true, 
-          selectedPhotoIndex: index 
+      openPhotoModal: (index: number) =>
+        set({
+          isPhotoModalOpen: true,
+          selectedPhotoIndex: index,
         }),
-      closePhotoModal: () => 
-        set({ 
-          isPhotoModalOpen: false 
+      closePhotoModal: () =>
+        set({
+          isPhotoModalOpen: false,
         }),
-      
+
       // Upload modal state
       isUploadModalOpen: false,
       openUploadModal: () => set({ isUploadModalOpen: true }),
       closeUploadModal: () => set({ isUploadModalOpen: false }),
-      
+
       // Gallery refresh state
       lastRefreshTime: new Date(),
       isLoadingPhotos: false,
       setIsLoadingPhotos: (loading: boolean) => set({ isLoadingPhotos: loading }),
       refreshPhotos: () => set({ lastRefreshTime: new Date() }),
+
+      // Internal state
+      _hasHydrated: false,
     }),
     {
       name: 'wedding-memories-store',
@@ -75,6 +81,11 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         guestName: state.guestName,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state._hasHydrated = true;
+        }
+      },
     }
   )
 );
@@ -101,3 +112,4 @@ export const useIsLoadingPhotos = () => useAppStore((state) => state.isLoadingPh
 export const useLastRefreshTime = () => useAppStore((state) => state.lastRefreshTime);
 export const useSetIsLoadingPhotos = () => useAppStore((state) => state.setIsLoadingPhotos);
 export const useRefreshPhotos = () => useAppStore((state) => state.refreshPhotos);
+export const useHasHydrated = () => useAppStore((state) => state._hasHydrated);
