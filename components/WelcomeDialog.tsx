@@ -12,14 +12,19 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useGuestName, useSetGuestName } from "../store/useAppStore";
 
-const GUEST_NAME_KEY = "wedding-guest-name";
 
 interface WelcomeDialogProps {
   onNameSet: (name: string) => void;
 }
 
 export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
+  // Zustand store hooks
+  const guestName = useGuestName();
+  const setGuestName = useSetGuestName();
+  
+  // Local state
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -28,15 +33,14 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
   useEffect(() => {
     setMounted(true);
     
-    // Check if user has already provided their name
-    const storedName = localStorage.getItem(GUEST_NAME_KEY);
-    if (!storedName) {
+    // Check if user has already provided their name (from Zustand store)
+    if (!guestName) {
       // Small delay to ensure the app has loaded
       setTimeout(() => setIsOpen(true), 1000);
     } else {
-      onNameSet(storedName);
+      onNameSet(guestName);
     }
-  }, [onNameSet]);
+  }, [guestName, onNameSet]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,8 +54,9 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
       return;
     }
 
-    localStorage.setItem(GUEST_NAME_KEY, name.trim());
-    onNameSet(name.trim());
+    const trimmedName = name.trim();
+    setGuestName(trimmedName);
+    onNameSet(trimmedName);
     setIsOpen(false);
     
     toast({
@@ -105,20 +110,3 @@ export function WelcomeDialog({ onNameSet }: WelcomeDialogProps) {
   );
 }
 
-// Utility functions for managing guest name
-export const guestNameUtils = {
-  get: (): string | null => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(GUEST_NAME_KEY);
-  },
-  
-  set: (name: string): void => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(GUEST_NAME_KEY, name);
-  },
-  
-  clear: (): void => {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(GUEST_NAME_KEY);
-  }
-};

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { WelcomeDialog, guestNameUtils } from "./WelcomeDialog";
+import { WelcomeDialog } from "./WelcomeDialog";
 import { Upload } from "./Upload";
 import { ModeToggle } from "./ModeToggle";
 import { Button } from "./ui/button";
@@ -17,27 +17,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useGuestName, useSetGuestName, usePhotoModalOpen } from "../store/useAppStore";
 
 interface ClientGalleryWrapperProps {
   children: React.ReactNode;
 }
 
 export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
-  const [guestName, setGuestName] = useState<string>("");
+  // Zustand store hooks
+  const guestName = useGuestName();
+  const setGuestName = useSetGuestName();
+  const isPhotoModalOpen = usePhotoModalOpen();
+  
+  // Local state for editing
   const [isEditingName, setIsEditingName] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const photoId = searchParams.get("photoId");
-  const isModalOpen = !!photoId;
+  const isModalOpen = !!photoId || isPhotoModalOpen;
   const { toast } = useToast();
 
-  // Load guest name from localStorage on mount
+  // Initialize newGuestName from store on mount
   useEffect(() => {
-    const storedName = guestNameUtils.get() || "";
-    setGuestName(storedName);
-    setNewGuestName(storedName);
-  }, []);
+    setNewGuestName(guestName);
+  }, [guestName]);
 
   // Update guest name when WelcomeDialog sets it
   const handleNameSet = (name: string) => {
@@ -60,7 +64,6 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
     const trimmedName = inputValue.trim();
     
     setGuestName(trimmedName);
-    guestNameUtils.set(trimmedName);
     setIsEditingName(false);
     
     toast({

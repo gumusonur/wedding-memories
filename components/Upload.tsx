@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 
 import { Button } from "./ui/button";
+import { useGuestName, useSetGuestName, useAddPhoto } from "../store/useAppStore";
 import {
   Drawer,
   DrawerClose,
@@ -29,7 +30,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { guestNameUtils } from "./WelcomeDialog";
 import {
   Dialog,
   DialogContent,
@@ -47,9 +47,12 @@ interface UploadProps {
 }
 
 export const Upload = ({ currentGuestName }: UploadProps) => {
+  // Zustand store hooks
+  const guestName = useGuestName();
+  const setGuestName = useSetGuestName();
+  const addPhoto = useAddPhoto();
   
   const [files, setFiles] = useState<UploadFile[]>([]);
-  const [guestName, setGuestName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -61,12 +64,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Load guest name from localStorage or props on mount
+  // Initialize guest name from store or props
   useEffect(() => {
-    const storedName = currentGuestName || guestNameUtils.get() || "";
-    setGuestName(storedName);
-    setNewGuestName(storedName);
-  }, [currentGuestName]);
+    const name = currentGuestName || guestName || "";
+    if (currentGuestName && currentGuestName !== guestName) {
+      setGuestName(currentGuestName);
+    }
+    setNewGuestName(name);
+  }, [currentGuestName, guestName, setGuestName]);
 
   // Detect screen size for responsive UI
   useEffect(() => {
@@ -343,7 +348,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           ));
 
           const newPhoto: ImageProps = {
-            id: data.public_id,
+            id: Date.now(), // Generate a unique numeric ID
             public_id: data.public_id,
             format: data.format,
             blurDataUrl: '', // Will be generated on next page load
@@ -353,7 +358,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             width: data.width.toString(),
           };
 
-          document.dispatchEvent(new CustomEvent("add-new-photo", { detail: newPhoto }));
+          addPhoto(newPhoto);
 
           toast({
             title: "Photo added successfully!",
@@ -417,7 +422,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
     const trimmedName = newGuestName.trim();
     setGuestName(trimmedName);
-    guestNameUtils.set(trimmedName);
     setIsEditingName(false);
     
     toast({
