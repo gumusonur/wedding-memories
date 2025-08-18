@@ -136,6 +136,20 @@
 }
 
 @layer utilities {
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
   .custom-scrollbar {
     /* Firefox */
     scrollbar-width: thin;
