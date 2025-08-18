@@ -50,7 +50,6 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
       setDirection(-1);
     }
     setCurrentIndex(newIndex);
-    setLoaded(false);
   }, [currentIndex]);
 
   // Keyboard navigation
@@ -110,8 +109,8 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
       
       <MotionConfig
         transition={{
-          x: { type: "spring", stiffness: 300, damping: 30 },
-          opacity: { duration: 0.2 },
+          x: { type: "tween", duration: 0.2, ease: "easeOut" },
+          opacity: { duration: 0.15 },
         }}
       >
         <div
@@ -144,8 +143,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
           {/* Buttons + bottom nav bar */}
           <div className="absolute inset-0 mx-auto flex max-w-7xl items-center justify-center pointer-events-none">
             {/* Navigation buttons */}
-            {loaded && (
-              <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
+            <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
                 {/* Previous button */}
                 {currentIndex > 0 && (
                   <button
@@ -203,12 +201,15 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                   </button>
                 </div>
               </div>
-            )}
             
             {/* Bottom thumbnail navigation */}
             <div className="fixed inset-x-0 bottom-0 z-40 overflow-hidden bg-gradient-to-b from-black/0 to-black/60">
               <motion.div
                 initial={false}
+                animate={{
+                  x: `${Math.max(currentIndex * -100, 15 * -100)}%`,
+                }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="mx-auto mt-6 mb-6 flex aspect-[3/2] h-14"
               >
                 <AnimatePresence initial={false}>
@@ -216,16 +217,10 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                     const actualIndex = images.findIndex(img => img.public_id === image.public_id);
                     return (
                       <motion.button
-                        initial={{
-                          width: "0%",
-                          x: `${Math.max((currentIndex - 1) * -100, 15 * -100)}%`,
-                        }}
                         animate={{
-                          scale: actualIndex === currentIndex ? 1.25 : 1,
-                          width: "100%",
-                          x: `${Math.max(currentIndex * -100, 15 * -100)}%`,
+                          scale: actualIndex === currentIndex ? 1.15 : 1,
                         }}
-                        exit={{ width: "0%" }}
+                        transition={{ duration: 0.15 }}
                         onClick={() => changePhotoIndex(actualIndex)}
                         key={actualIndex}
                         className={`${
