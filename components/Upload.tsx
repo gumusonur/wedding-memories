@@ -697,7 +697,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                             "absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-md text-white text-xs",
                             uploadFile.status === 'success' && "bg-green-500",
                             uploadFile.status === 'error' && "bg-red-500",
-                            uploadFile.status === 'uploading' && "bg-blue-500 animate-pulse",
+                            uploadFile.status === 'uploading' && "bg-blue-500 animate-[bounce_1s_infinite]",
                             uploadFile.status === 'pending' && "bg-gray-400"
                           )}>
                             {uploadFile.status === 'success' && <Check className="w-2 h-2" />}

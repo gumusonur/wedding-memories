@@ -1,22 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useSearchParams } from "next/navigation";
 import { WelcomeDialog } from "./WelcomeDialog";
 import { Upload } from "./Upload";
 import { ModeToggle } from "./ModeToggle";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Edit } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useGuestName, useSetGuestName, usePhotoModalOpen } from "../store/useAppStore";
 
 interface ClientGalleryWrapperProps {
@@ -29,47 +17,13 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
   const setGuestName = useSetGuestName();
   const isPhotoModalOpen = usePhotoModalOpen();
   
-  // Local state for editing
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [newGuestName, setNewGuestName] = useState("");
-  const nameInputRef = React.useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const photoId = searchParams.get("photoId");
   const isModalOpen = !!photoId || isPhotoModalOpen;
-  const { toast } = useToast();
-
-  // Initialize newGuestName from store on mount
-  useEffect(() => {
-    setNewGuestName(guestName);
-  }, [guestName]);
 
   // Update guest name when WelcomeDialog sets it
   const handleNameSet = (name: string) => {
     setGuestName(name);
-    setNewGuestName(name);
-  };
-
-  const handleNameChange = () => {
-    const inputValue = nameInputRef.current?.value || "";
-    
-    if (!inputValue.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Name required",
-        description: "Please enter a valid name.",
-      });
-      return;
-    }
-
-    const trimmedName = inputValue.trim();
-    
-    setGuestName(trimmedName);
-    setIsEditingName(false);
-    
-    toast({
-      title: "Name updated",
-      description: `Your name has been changed to ${trimmedName}`,
-    });
   };
 
   return (
@@ -87,23 +41,6 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
             <p className="text-xs sm:text-sm text-muted-foreground font-light">Wedding Memories</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {guestName && (
-              <div className="flex items-center gap-2 px-3 py-2 border border-muted-foreground/20 rounded text-sm h-8">
-                <span className="font-medium text-primary truncate max-w-24 sm:max-w-none">{guestName}</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setNewGuestName(guestName);
-                    setIsEditingName(true);
-                  }}
-                  className="h-5 w-5 p-0 hover:bg-primary/20"
-                  title="Change name"
-                >
-                  <Edit className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
             <ModeToggle />
           </div>
         </header>
@@ -116,41 +53,6 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
         <Upload currentGuestName={guestName} />
       </div>
 
-      {/* Guest Name Edit Dialog */}
-      <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Change Your Name</DialogTitle>
-            <DialogDescription>
-              Update the name that will be associated with your photos.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleNameChange(); }} className="space-y-4">
-            <input
-              ref={nameInputRef}
-              type="text"
-              placeholder="Enter your name"
-              defaultValue={guestName}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleNameChange();
-                }
-              }}
-              autoFocus
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </form>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditingName(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleNameChange}>
-              Update Name
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

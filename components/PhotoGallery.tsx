@@ -170,7 +170,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
         >
           <div className="flex items-center justify-center gap-3">
             <div 
-              className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"
+              className="animate-[spin_1.5s_ease-in-out_infinite] rounded-full h-5 w-5 border-2 border-current border-r-transparent"
               aria-hidden="true"
             />
             <span className="text-sm font-medium">Loading new photos...</span>
