@@ -1,6 +1,6 @@
 /**
  * Testing utilities and helpers for the wedding gallery application.
- * 
+ *
  * This module provides testing utilities following CLAUDE.md standards:
  * - Cross-platform testing support
  * - Mock data factories for consistent testing
@@ -17,7 +17,7 @@ import type { ImageProps, UploadFile, UploadResponse } from './types';
 export class MockImageFactory {
   /**
    * Creates a mock ImageProps object for testing.
-   * 
+   *
    * @param overrides - Properties to override in the mock
    * @returns Mock ImageProps object
    */
@@ -28,38 +28,39 @@ export class MockImageFactory {
       width: '720',
       public_id: `test_image_${Date.now()}`,
       format: 'jpg',
-      blurDataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyatcEfCP8Aeeh6w7ZLGqw0FUnlBzFXfnq5nI/v/9k=',
+      blurDataUrl:
+        'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyatcEfCP8Aeeh6w7ZLGqw0FUnlBzFXfnq5nI/v/9k=',
       guestName: 'Test Guest',
       uploadDate: new Date().toISOString(),
     };
-    
+
     return { ...defaultImage, ...overrides };
   }
 
   /**
    * Creates an array of mock images for testing gallery functionality.
-   * 
+   *
    * @param count - Number of images to create
    * @param baseOverrides - Base properties to apply to all images
    * @returns Array of mock ImageProps objects
    */
   static createMockImageArray(
-    count: number, 
+    count: number,
     baseOverrides: Partial<ImageProps> = {}
   ): ImageProps[] {
-    return Array.from({ length: count }, (_, index) => 
-      this.createMockImage({ 
-        id: index, 
+    return Array.from({ length: count }, (_, index) =>
+      this.createMockImage({
+        id: index,
         public_id: `test_image_${index}`,
         guestName: `Guest ${index + 1}`,
-        ...baseOverrides 
+        ...baseOverrides,
       })
     );
   }
 
   /**
    * Creates a mock UploadFile object for testing upload functionality.
-   * 
+   *
    * @param overrides - Properties to override in the mock
    * @returns Mock UploadFile object
    */
@@ -83,7 +84,7 @@ export class MockImageFactory {
 
   /**
    * Creates a mock Cloudinary upload response for testing.
-   * 
+   *
    * @param overrides - Properties to override in the mock
    * @returns Mock UploadResponse object
    */
@@ -117,7 +118,7 @@ export class MockImageFactory {
 export class TestEnvironment {
   /**
    * Creates a mock environment variables object for testing.
-   * 
+   *
    * @param overrides - Environment variables to override
    * @returns Mock environment object
    */
@@ -137,19 +138,19 @@ export class TestEnvironment {
   /**
    * Mocks the global fetch function for API testing.
    * Note: This is designed for Jest testing environments.
-   * 
+   *
    * @param responses - Map of URLs to response objects
    */
   static mockFetch(responses: Record<string, any>): void {
     // Check if we're in a Jest testing environment
     const isJestEnvironment = typeof (globalThis as any).jest !== 'undefined';
-    
+
     if (isJestEnvironment) {
       // Jest environment - use jest.fn()
       (global as any).fetch = ((globalThis as any).jest as any).fn((url: string) => {
         const responseData = responses[url] || { error: 'Not found' };
         const status = responses[url] ? 200 : 404;
-        
+
         return Promise.resolve({
           ok: status < 400,
           status,
@@ -162,7 +163,7 @@ export class TestEnvironment {
       (global as any).fetch = (url: string) => {
         const responseData = responses[url] || { error: 'Not found' };
         const status = responses[url] ? 200 : 404;
-        
+
         return Promise.resolve({
           ok: status < 400,
           status,
@@ -189,7 +190,7 @@ export class TestEnvironment {
 export class AccessibilityTestUtils {
   /**
    * Checks if an element has proper ARIA attributes for images.
-   * 
+   *
    * @param element - DOM element to check
    * @returns Object with accessibility check results
    */
@@ -211,18 +212,18 @@ export class AccessibilityTestUtils {
 
   /**
    * Checks if a form has proper accessibility attributes.
-   * 
+   *
    * @param form - Form element to check
    * @returns Object with form accessibility check results
    */
   static checkFormAccessibility(form: HTMLFormElement) {
     const inputs = form.querySelectorAll('input, textarea, select');
-    const inputsWithLabels = Array.from(inputs).filter(input => {
+    const inputsWithLabels = Array.from(inputs).filter((input) => {
       const id = input.getAttribute('id');
       const hasLabel = id && form.querySelector(`label[for="${id}"]`);
       const hasAriaLabel = input.hasAttribute('aria-label');
       const hasAriaLabelledBy = input.hasAttribute('aria-labelledby');
-      
+
       return hasLabel || hasAriaLabel || hasAriaLabelledBy;
     });
 
@@ -241,7 +242,7 @@ export class AccessibilityTestUtils {
 export class PerformanceTestUtils {
   /**
    * Measures the time it takes to execute a function.
-   * 
+   *
    * @param fn - Function to measure
    * @param iterations - Number of times to run the function
    * @returns Object with timing statistics
@@ -269,7 +270,7 @@ export class PerformanceTestUtils {
 
   /**
    * Creates a performance observer for measuring specific metrics.
-   * 
+   *
    * @param entryTypes - Array of entry types to observe
    * @returns Performance observer instance
    */
@@ -281,7 +282,7 @@ export class PerformanceTestUtils {
 
     return new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         console.log(`Performance: ${entry.name} - ${entry.duration}ms`);
       });
     });
@@ -294,7 +295,7 @@ export class PerformanceTestUtils {
 export class FileTestUtils {
   /**
    * Creates a mock File object for testing.
-   * 
+   *
    * @param name - File name
    * @param content - File content
    * @param type - MIME type
@@ -309,18 +310,18 @@ export class FileTestUtils {
   ): File {
     const blob = new Blob([content], { type });
     const file = new File([blob], name, { type, lastModified: Date.now() });
-    
+
     // Override size if specified
     if (size !== undefined) {
       Object.defineProperty(file, 'size', { value: size, writable: false });
     }
-    
+
     return file;
   }
 
   /**
    * Creates a mock FileList for testing multiple file uploads.
-   * 
+   *
    * @param files - Array of File objects
    * @returns Mock FileList object
    */
@@ -330,29 +331,29 @@ export class FileTestUtils {
       ...files,
       length: files.length,
     };
-    
+
     return fileList as FileList;
   }
 
   /**
    * Simulates a file drop event for testing drag-and-drop functionality.
-   * 
+   *
    * @param files - Files to include in the drop event
    * @returns Mock drop event
    */
   static createMockDropEvent(files: File[]): DragEvent {
     const fileList = this.createMockFileList(files);
-    
+
     const event = new DragEvent('drop', {
       bubbles: true,
       cancelable: true,
     });
-    
+
     Object.defineProperty(event, 'dataTransfer', {
       value: { files: fileList },
       writable: false,
     });
-    
+
     return event;
   }
 }
@@ -364,7 +365,7 @@ export class FileTestUtils {
 export class TestAssertions {
   /**
    * Asserts that an element is properly focused for accessibility.
-   * 
+   *
    * @param element - Element to check
    */
   static assertElementIsFocused(element: HTMLElement): void {
@@ -385,7 +386,7 @@ export class TestAssertions {
 
   /**
    * Asserts that an image has proper accessibility attributes.
-   * 
+   *
    * @param img - Image element to check
    */
   static assertImageIsAccessible(img: HTMLImageElement): void {
@@ -407,14 +408,14 @@ export class TestAssertions {
 
   /**
    * Asserts that a form input has proper labeling.
-   * 
+   *
    * @param input - Input element to check
    */
   static assertInputIsLabeled(input: HTMLInputElement): void {
     const hasLabel = input.id && document.querySelector(`label[for="${input.id}"]`);
     const hasAriaLabel = input.hasAttribute('aria-label');
     const hasAriaLabelledBy = input.hasAttribute('aria-labelledby');
-    
+
     const expect = (globalThis as any).expect;
     if (expect) {
       expect(hasLabel || hasAriaLabel || hasAriaLabelledBy).toBeTruthy();
@@ -427,7 +428,7 @@ export class TestAssertions {
 
   /**
    * Asserts that an API response follows the expected structure.
-   * 
+   *
    * @param response - API response to check
    * @param expectedKeys - Array of expected keys in the response
    */
@@ -436,8 +437,8 @@ export class TestAssertions {
     if (expect) {
       expect(typeof response).toBe('object');
       expect(response).not.toBeNull();
-      
-      expectedKeys.forEach(key => {
+
+      expectedKeys.forEach((key) => {
         expect(response).toHaveProperty(key);
       });
     } else {
@@ -445,8 +446,8 @@ export class TestAssertions {
       if (typeof response !== 'object' || response === null) {
         throw new Error('Response is not a valid object');
       }
-      
-      const missingKeys = expectedKeys.filter(key => !(key in response));
+
+      const missingKeys = expectedKeys.filter((key) => !(key in response));
       if (missingKeys.length > 0) {
         throw new Error(`Response missing keys: ${missingKeys.join(', ')}`);
       }

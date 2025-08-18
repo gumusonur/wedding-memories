@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useSearchParams } from "next/navigation";
-import { WelcomeDialog } from "./WelcomeDialog";
-import { Upload } from "./Upload";
-import { ModeToggle } from "./ModeToggle";
-import { useGuestName, useSetGuestName, usePhotoModalOpen } from "../store/useAppStore";
+import React from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Upload } from './Upload';
+import { ModeToggle } from './ModeToggle';
+import { useGuestName, usePhotoModalOpen } from '../store/useAppStore';
+import { WelcomeDialog } from './WelcomeDialog';
 
 interface ClientGalleryWrapperProps {
   children: React.ReactNode;
@@ -14,22 +14,14 @@ interface ClientGalleryWrapperProps {
 export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
   // Zustand store hooks
   const guestName = useGuestName();
-  const setGuestName = useSetGuestName();
   const isPhotoModalOpen = usePhotoModalOpen();
-  
-  const searchParams = useSearchParams();
-  const photoId = searchParams.get("photoId");
-  const isModalOpen = !!photoId || isPhotoModalOpen;
 
-  // Update guest name when WelcomeDialog sets it
-  const handleNameSet = (name: string) => {
-    setGuestName(name);
-  };
+  const searchParams = useSearchParams();
+  const photoId = searchParams.get('photoId');
+  const isModalOpen = !!photoId || isPhotoModalOpen;
 
   return (
     <>
-      <WelcomeDialog onNameSet={handleNameSet} />
-      
       <main className="mx-auto max-w-[1960px] px-4 py-4">
         <header className="flex justify-between items-center gap-3 mb-6">
           <div className="flex-1 min-w-0">
@@ -49,10 +41,11 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
       </main>
 
       {/* Floating Upload Button - Hidden when modal is open */}
-      <div className={`fixed bottom-6 right-6 z-50 transition-opacity duration-200 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div
+        className={`fixed bottom-6 right-6 z-50 transition-opacity duration-200 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      >
         <Upload currentGuestName={guestName} />
       </div>
-
     </>
   );
 }

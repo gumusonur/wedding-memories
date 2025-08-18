@@ -1,6 +1,6 @@
 /**
  * Validation utilities for the wedding gallery application.
- * 
+ *
  * This module provides reusable validation functions following CLAUDE.md principles:
  * - Input validation with clear error messages
  * - Security-focused validation to prevent malicious inputs
@@ -14,22 +14,16 @@ import { ValidationError } from './errors';
  */
 export const SUPPORTED_IMAGE_TYPES = [
   'image/jpeg',
-  'image/jpg', 
+  'image/jpg',
   'image/png',
   'image/gif',
-  'image/webp'
+  'image/webp',
 ] as const;
 
 /**
  * Supported image file extensions (fallback for Safari compatibility).
  */
-export const SUPPORTED_IMAGE_EXTENSIONS = [
-  '.jpg',
-  '.jpeg', 
-  '.png',
-  '.gif',
-  '.webp'
-] as const;
+export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
 
 /**
  * Maximum file size for uploads (10MB).
@@ -53,7 +47,7 @@ export const MAX_FILES_PER_UPLOAD = 20;
 
 /**
  * Validates if a file is a supported image format.
- * 
+ *
  * @param file - File to validate
  * @returns True if file is a valid image
  * @throws {ValidationError} If file is not a valid image
@@ -77,18 +71,13 @@ export function validateImageFile(file: File): boolean {
   if (file.type && SUPPORTED_IMAGE_TYPES.includes(file.type as any)) {
     return true;
   }
-  
+
   // Fallback: check file extension for Safari compatibility
   const fileName = file.name?.toLowerCase() || '';
-  const hasValidExtension = SUPPORTED_IMAGE_EXTENSIONS.some(ext => 
-    fileName.endsWith(ext)
-  );
-  
+  const hasValidExtension = SUPPORTED_IMAGE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+
   if (!hasValidExtension) {
-    throw new ValidationError(
-      'File must be a valid image format (JPG, PNG, GIF, or WebP)',
-      'file'
-    );
+    throw new ValidationError('File must be a valid image format (JPG, PNG, GIF, or WebP)', 'file');
   }
 
   return true;
@@ -96,7 +85,7 @@ export function validateImageFile(file: File): boolean {
 
 /**
  * Validates guest name input.
- * 
+ *
  * @param guestName - Guest name to validate
  * @returns Trimmed and validated guest name
  * @throws {ValidationError} If guest name is invalid
@@ -107,7 +96,7 @@ export function validateGuestName(guestName: unknown): string {
   }
 
   const trimmedName = guestName.trim();
-  
+
   if (trimmedName.length < MIN_GUEST_NAME_LENGTH) {
     throw new ValidationError('Guest name is required', 'guestName');
   }
@@ -121,10 +110,7 @@ export function validateGuestName(guestName: unknown): string {
 
   // Check for potentially malicious content
   if (containsMaliciousContent(trimmedName)) {
-    throw new ValidationError(
-      'Guest name contains invalid characters',
-      'guestName'
-    );
+    throw new ValidationError('Guest name contains invalid characters', 'guestName');
   }
 
   return trimmedName;
@@ -132,7 +118,7 @@ export function validateGuestName(guestName: unknown): string {
 
 /**
  * Validates base64 file data.
- * 
+ *
  * @param fileData - Base64 encoded file data
  * @returns True if file data is valid
  * @throws {ValidationError} If file data is invalid
@@ -143,19 +129,14 @@ export function validateBase64FileData(fileData: unknown): boolean {
   }
 
   if (!fileData.startsWith('data:image/')) {
-    throw new ValidationError(
-      'File must be a valid image format',
-      'file'
-    );
+    throw new ValidationError('File must be a valid image format', 'file');
   }
 
   // Check for reasonable file size (base64 is ~33% larger than binary)
   const estimatedSize = (fileData.length * 3) / 4;
-  if (estimatedSize > MAX_FILE_SIZE * 1.5) { // Allow some overhead
-    throw new ValidationError(
-      'File size is too large',
-      'file'
-    );
+  if (estimatedSize > MAX_FILE_SIZE * 1.5) {
+    // Allow some overhead
+    throw new ValidationError('File size is too large', 'file');
   }
 
   return true;
@@ -163,7 +144,7 @@ export function validateBase64FileData(fileData: unknown): boolean {
 
 /**
  * Validates an array of files for batch upload.
- * 
+ *
  * @param files - Array of files to validate
  * @returns Array of validated files
  * @throws {ValidationError} If any file is invalid or limits are exceeded
@@ -178,10 +159,7 @@ export function validateFileArray(files: File[]): File[] {
   }
 
   if (files.length > MAX_FILES_PER_UPLOAD) {
-    throw new ValidationError(
-      `Maximum ${MAX_FILES_PER_UPLOAD} files allowed per upload`,
-      'files'
-    );
+    throw new ValidationError(`Maximum ${MAX_FILES_PER_UPLOAD} files allowed per upload`, 'files');
   }
 
   // Validate each file
@@ -190,10 +168,7 @@ export function validateFileArray(files: File[]): File[] {
       validateImageFile(file);
     } catch (error) {
       if (error instanceof ValidationError) {
-        throw new ValidationError(
-          `File ${index + 1}: ${error.message}`,
-          'files'
-        );
+        throw new ValidationError(`File ${index + 1}: ${error.message}`, 'files');
       }
       throw error;
     }
@@ -204,7 +179,7 @@ export function validateFileArray(files: File[]): File[] {
 
 /**
  * Validates environment variables required for the application.
- * 
+ *
  * @param env - Environment variables object
  * @throws {ValidationError} If required variables are missing
  */
@@ -215,11 +190,11 @@ export function validateEnvironmentVariables(env: Record<string, string | undefi
     'CLOUDINARY_API_SECRET',
     'CLOUDINARY_FOLDER',
     'NEXT_PUBLIC_BRIDE_NAME',
-    'NEXT_PUBLIC_GROOM_NAME'
+    'NEXT_PUBLIC_GROOM_NAME',
   ];
 
-  const missingVars = requiredVars.filter(varName => !env[varName]);
-  
+  const missingVars = requiredVars.filter((varName) => !env[varName]);
+
   if (missingVars.length > 0) {
     throw new ValidationError(
       `Missing required environment variables: ${missingVars.join(', ')}`,
@@ -239,7 +214,7 @@ export function validateEnvironmentVariables(env: Record<string, string | undefi
 
 /**
  * Checks if text contains potentially malicious content.
- * 
+ *
  * @param text - Text to check
  * @returns True if text contains malicious content
  */
@@ -254,15 +229,15 @@ function containsMaliciousContent(text: string): boolean {
     /<embed/i,
     /data:text\/html/i,
     /vbscript:/i,
-    /expression\s*\(/i
+    /expression\s*\(/i,
   ];
 
-  return maliciousPatterns.some(pattern => pattern.test(text));
+  return maliciousPatterns.some((pattern) => pattern.test(text));
 }
 
 /**
  * Sanitizes text input by removing potentially dangerous characters.
- * 
+ *
  * @param text - Text to sanitize
  * @returns Sanitized text
  */
@@ -275,7 +250,7 @@ export function sanitizeTextInput(text: string): string {
 
 /**
  * Validates a photo ID parameter.
- * 
+ *
  * @param photoId - Photo ID to validate
  * @returns Validated numeric photo ID
  * @throws {ValidationError} If photo ID is invalid
@@ -286,7 +261,7 @@ export function validatePhotoId(photoId: unknown): number {
   }
 
   const numericId = typeof photoId === 'string' ? parseInt(photoId, 10) : Number(photoId);
-  
+
   if (isNaN(numericId) || numericId < 0 || !Number.isInteger(numericId)) {
     throw new ValidationError('Photo ID must be a valid positive integer', 'photoId');
   }
@@ -296,7 +271,7 @@ export function validatePhotoId(photoId: unknown): number {
 
 /**
  * Type guard to check if a value is a non-empty string.
- * 
+ *
  * @param value - Value to check
  * @returns True if value is a non-empty string
  */
@@ -306,7 +281,7 @@ export function isNonEmptyString(value: unknown): value is string {
 
 /**
  * Type guard to check if a value is a valid File object.
- * 
+ *
  * @param value - Value to check
  * @returns True if value is a File
  */

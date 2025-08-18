@@ -3,11 +3,11 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        port: "",
-        pathname: "/**", // Allow all Cloudinary paths
-        search: "",
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/**', // Allow all Cloudinary paths
+        search: '',
       },
     ],
     // Next.js Image optimization settings

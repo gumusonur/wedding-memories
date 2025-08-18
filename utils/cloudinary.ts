@@ -1,4 +1,4 @@
-import cloudinary from "cloudinary";
+import cloudinary from 'cloudinary';
 
 cloudinary.v2.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,

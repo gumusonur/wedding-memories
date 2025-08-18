@@ -1,6 +1,6 @@
 /**
  * Next.js optimized image utilities that leverage built-in features.
- * 
+ *
  * This module provides utilities that work with Next.js Image component
  * to achieve optimal performance using built-in features rather than
  * custom implementations.
@@ -17,13 +17,13 @@ export function getOptimizedImageUrl(
   quality: 'thumb' | 'medium' | 'full' = 'medium'
 ): string {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  
+
   const transformations = {
     thumb: 'c_scale,w_180,q_auto,f_auto',
-    medium: 'c_scale,w_720,q_auto,f_auto', 
-    full: 'c_scale,w_1280,q_auto,f_auto'
+    medium: 'c_scale,w_720,q_auto,f_auto',
+    full: 'c_scale,w_1280,q_auto,f_auto',
   };
-  
+
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations[quality]}/${publicId}.${format}`;
 }
 
@@ -53,17 +53,17 @@ export function getResponsiveSizes(context: 'gallery' | 'modal' | 'thumb'): stri
  */
 export function prefetchModalNavigation(images: ImageProps[], currentIndex: number): void {
   if (typeof window === 'undefined') return;
-  
+
   // Only prefetch immediate next/previous for modal
   const indicesToPrefetch = [
     currentIndex - 1, // Previous
-    currentIndex + 1  // Next
-  ].filter(i => i >= 0 && i < images.length);
-  
-  indicesToPrefetch.forEach(i => {
+    currentIndex + 1, // Next
+  ].filter((i) => i >= 0 && i < images.length);
+
+  indicesToPrefetch.forEach((i) => {
     const image = images[i];
     const url = getOptimizedImageUrl(image.public_id, image.format, 'full');
-    
+
     // Check if already prefetched
     const existing = document.querySelector(`link[href="${url}"]`);
     if (!existing) {
@@ -80,7 +80,10 @@ export function prefetchModalNavigation(images: ImageProps[], currentIndex: numb
 /**
  * Determines if an image should be loaded with priority
  */
-export function shouldPrioritizeImage(index: number, viewport: 'mobile' | 'desktop' = 'desktop'): boolean {
+export function shouldPrioritizeImage(
+  index: number,
+  viewport: 'mobile' | 'desktop' = 'desktop'
+): boolean {
   // Load first 6 images with priority on desktop, first 3 on mobile
   const priorityCount = viewport === 'mobile' ? 3 : 6;
   return index < priorityCount;
@@ -99,7 +102,7 @@ export function getLoadingStrategy(index: number, total: number): 'eager' | 'laz
  */
 export function simplePrefetch(url: string): void {
   if (typeof window === 'undefined') return;
-  
+
   // Check if already prefetched
   const existing = document.querySelector(`link[href="${url}"]`);
   if (!existing) {
@@ -115,7 +118,10 @@ export function simplePrefetch(url: string): void {
 /**
  * Prefetch on user interaction (hover, focus)
  */
-export function prefetchOnInteraction(image: ImageProps, quality: 'thumb' | 'medium' | 'full' = 'full'): void {
+export function prefetchOnInteraction(
+  image: ImageProps,
+  quality: 'thumb' | 'medium' | 'full' = 'full'
+): void {
   const url = getOptimizedImageUrl(image.public_id, image.format, quality);
   simplePrefetch(url);
 }
@@ -132,7 +138,7 @@ export function getOptimizedImageProps(
   } = {}
 ) {
   const { priority = false, quality = 'medium' } = options;
-  
+
   return {
     src: getOptimizedImageUrl(image.public_id, image.format, quality),
     alt: `Wedding photo${image.guestName && image.guestName !== 'Unknown Guest' ? ` shared by ${image.guestName}` : ''}`,
@@ -140,14 +146,16 @@ export function getOptimizedImageProps(
     height: quality === 'thumb' ? 120 : quality === 'medium' ? 480 : 853,
     sizes: getResponsiveSizes(context),
     priority,
-    loading: priority ? 'eager' as const : 'lazy' as const,
+    loading: priority ? ('eager' as const) : ('lazy' as const),
     // Only use blur placeholder if blurDataUrl exists
-    ...(image.blurDataUrl ? {
-      placeholder: 'blur' as const,
-      blurDataURL: image.blurDataUrl,
-    } : {
-      placeholder: 'empty' as const,
-    }),
+    ...(image.blurDataUrl
+      ? {
+          placeholder: 'blur' as const,
+          blurDataURL: image.blurDataUrl,
+        }
+      : {
+          placeholder: 'empty' as const,
+        }),
     quality: quality === 'thumb' ? 60 : quality === 'medium' ? 80 : 90,
   };
 }
