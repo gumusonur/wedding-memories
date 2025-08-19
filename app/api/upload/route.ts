@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import cloudinary from '../../../utils/cloudinary';
+import { processImageForUpload } from '../../../utils/imageProcessor';
 import type { ApiResponse, UploadResponse, ApiErrorResponse } from '../../../utils/types';
 
 /**
@@ -84,7 +85,10 @@ export async function POST(
 
     const { file, guestName } = validateUploadRequest(requestBody.file, requestBody.guestName);
 
-    const uploadResult = await cloudinary.v2.uploader.upload(file, {
+    // Process image to reduce file size while maintaining quality
+    const processedFile = await processImageForUpload(file);
+
+    const uploadResult = await cloudinary.v2.uploader.upload(processedFile, {
       folder: process.env.CLOUDINARY_FOLDER,
       context: { guest: guestName },
       resource_type: 'image',

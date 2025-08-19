@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/dialog';
 
 import type { UploadFile, ImageProps } from '../utils/types';
+import { formatFileSize, getCompressionInfo } from '../utils/clientUtils';
 
 interface UploadProps {
   currentGuestName?: string;
@@ -765,6 +766,19 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                       <div className="mt-1">
                         <div className="text-xs font-medium truncate" title={uploadFile.file.name}>
                           {uploadFile.file.name}
+                        </div>
+                        
+                        {/* File size info */}
+                        <div className="text-xs text-muted-foreground truncate">
+                          {formatFileSize(uploadFile.file.size)}
+                          {(() => {
+                            const compressionInfo = getCompressionInfo(uploadFile.file.size);
+                            return compressionInfo.willCompress && (
+                              <span className="text-orange-600 ml-1" title={`Will be compressed by ${compressionInfo.estimatedSizeReduction} to fit 10MB limit`}>
+                                ⚡ -{compressionInfo.estimatedSizeReduction}
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         {uploadFile.status === 'uploading' && (
