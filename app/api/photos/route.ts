@@ -33,6 +33,20 @@ function transformCloudinaryResults(cloudinaryResources: any[]): ImageProps[] {
 }
 
 /**
+ * Creates a timeout promise that rejects after the specified duration.
+ *
+ * @param timeoutMs - Timeout duration in milliseconds
+ * @returns Promise that rejects with timeout error
+ */
+function createTimeoutPromise(timeoutMs: number): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+}
+
+/**
  * Handles GET requests to fetch all wedding photos.
  *
  * This endpoint provides a refreshed list of all photos from Cloudinary,
@@ -44,12 +58,17 @@ export async function GET(): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
   try {
     validatePhotoFetchEnvironment();
 
-    const searchResults = await cloudinary.v2.search
+    // Wrap Cloudinary request in Promise.race with 10-second timeout
+    const cloudinaryRequest = cloudinary.v2.search
       .expression(`folder:${process.env.CLOUDINARY_FOLDER}/*`)
       .sort_by('created_at', 'desc')
       .max_results(400)
       .with_field('context')
       .execute();
+
+    const timeoutPromise = createTimeoutPromise(10000); // 10 seconds
+
+    const searchResults = await Promise.race([cloudinaryRequest, timeoutPromise]);
 
     const transformedPhotos = transformCloudinaryResults(searchResults.resources);
 
@@ -66,6 +85,15 @@ export async function GET(): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
     return NextResponse.json(transformedPhotos, { status: 200 });
   } catch (error) {
     console.error('Failed to fetch wedding photos:', error);
+
+    // Check if error is timeout-related
+    if (error instanceof Error && error.message.includes('Request timeout')) {
+      const timeoutResponse: ApiErrorResponse = {
+        error: 'Request timeout',
+        details: 'The photo service is taking too long to respond. Please try again in a moment.',
+      };
+      return NextResponse.json(timeoutResponse, { status: 504 });
+    }
 
     if (error instanceof Error && error.message.includes('environment')) {
       const errorResponse: ApiErrorResponse = {
