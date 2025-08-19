@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import cloudinary from '../../../utils/cloudinary';
 import { processImageForUpload } from '../../../utils/imageProcessor';
+import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rateLimit';
 import type { ApiResponse, UploadResponse, ApiErrorResponse } from '../../../utils/types';
 
 /**
@@ -77,6 +78,20 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<UploadResponse>>> {
   try {
+    // Check rate limits first (fail fast)
+    const rateLimitResult = checkUploadRateLimit(request);
+    if (!rateLimitResult.success) {
+      const errorResponse: ApiErrorResponse = {
+        error: 'Too many uploads',
+        details: rateLimitResult.message || 'Please wait before uploading more photos.',
+      };
+      
+      return NextResponse.json(errorResponse, {
+        status: 429,
+        headers: createRateLimitHeaders(rateLimitResult),
+      });
+    }
+
     validateEnvironment();
 
     const requestBody = await request.json().catch(() => {
@@ -117,7 +132,10 @@ export async function POST(
       context: uploadResult.context,
     };
 
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json(response, { 
+      status: 201,
+      headers: createRateLimitHeaders(rateLimitResult),
+    });
   } catch (error) {
     console.error('Upload error:', error);
 

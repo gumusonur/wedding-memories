@@ -30,7 +30,7 @@ async function fetchWeddingPhotos(): Promise<ImageProps[]> {
       .execute();
 
     const transformedImages: ImageProps[] = searchResults.resources.map(
-      (cloudinaryResource, index) => ({
+      (cloudinaryResource: any, index: number) => ({
         id: index,
         height: cloudinaryResource.height?.toString() || '480',
         width: cloudinaryResource.width?.toString() || '720',
