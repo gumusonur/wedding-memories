@@ -25,7 +25,6 @@ import {
 import type { ImageProps } from '../utils/types';
 import { variants } from '../utils/animationVariants';
 import downloadPhoto from '../utils/downloadPhoto';
-import { range } from '../utils/range';
 import { getOptimizedImageProps } from '../utils/imageOptimization';
 
 interface CachedModalProps {
@@ -430,8 +429,8 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
   const currentImage = images[currentIndex];
 
   // Filter images for bottom navigation (show 15 images around current)
-  const filteredImages = images.filter((img, index) =>
-    range(currentIndex - 15, currentIndex + 15).includes(index)
+  const filteredImages = images.filter((_, index) => 
+    index >= Math.max(0, currentIndex - 15) && index < Math.min(images.length, currentIndex + 15)
   );
 
   return (

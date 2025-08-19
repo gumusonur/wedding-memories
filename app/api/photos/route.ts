@@ -72,7 +72,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
 
     const transformedPhotos = transformCloudinaryResults(searchResults.resources);
 
-    const blurPlaceholderPromises = searchResults.resources.map((resource) => {
+    const blurPlaceholderPromises = searchResults.resources.map((resource: any) => {
       return generateBlurPlaceholder(resource);
     });
 
