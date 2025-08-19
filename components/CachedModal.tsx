@@ -10,7 +10,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import useKeypress from 'react-use-keypress';
+import { useKeypress } from '../hooks/useKeypress';
 import { useSwipeable } from 'react-swipeable';
 import {
   Download,
