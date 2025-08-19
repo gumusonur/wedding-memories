@@ -2,11 +2,17 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AppLoader } from '@/components/AppLoader';
 import { ToasterProvider } from '@/components/ToasterProvider';
 import { WelcomeDialog } from '@/components/WelcomeDialog';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import '../styles/index.css';
 
 const groomName = process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom';
 const brideName = process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1.0,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: `${groomName} & ${brideName} Wedding Memories`,
