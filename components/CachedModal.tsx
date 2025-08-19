@@ -104,15 +104,6 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
     const safariMobile = detectSafariMobile();
     const otherMobile = detectOtherMobile();
 
-    console.log('Browser detection:', {
-      userAgent: navigator.userAgent,
-      touchDevice,
-      safariMobile,
-      otherMobile,
-      safeAreaBottom: getComputedStyle(document.documentElement).getPropertyValue(
-        '--safe-area-inset-bottom-px'
-      ),
-    });
 
     setIsTouchDevice(touchDevice);
     setIsSafariMobile(safariMobile);
@@ -122,7 +113,6 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
   // Ensure controls are always visible when zoomed in (safety net)
   useEffect(() => {
     if (zoom > 1 && !controlsVisible) {
-      console.log('Safety net: Showing controls because zoom > 1');
       setControlsVisible(true);
     }
   }, [zoom, controlsVisible]);
