@@ -3,10 +3,11 @@ import { AppLoader } from '@/components/AppLoader';
 import { ToasterProvider } from '@/components/ToasterProvider';
 import { WelcomeDialog } from '@/components/WelcomeDialog';
 import type { Metadata, Viewport } from 'next';
+import { appConfig } from '../config';
 import '../styles/index.css';
 
-const groomName = process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom';
-const brideName = process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride';
+const groomName = appConfig.groomName;
+const brideName = appConfig.brideName;
 
 export const viewport: Viewport = {
   width: 'device-width',

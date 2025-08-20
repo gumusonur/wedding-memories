@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import type { ImageProps } from '../utils/types';
+import { appConfig } from '../config';
 import { getOptimizedImageProps, prefetchOnInteraction } from '../utils/imageOptimization';
 import CachedModal from './CachedModal';
 import {
@@ -52,7 +53,7 @@ function formatUploadDate(dateString: string, locale: string = 'en-US'): string 
  * @returns Descriptive alt text for screen readers
  */
 function generatePhotoAltText(guestName?: string, photoIndex?: number): string {
-  const coupleNames = `${process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'} & ${process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'}`;
+  const coupleNames = `${appConfig.brideName} & ${appConfig.groomName}`;
 
   if (guestName && guestName !== 'Unknown Guest') {
     return `Wedding photo shared by ${guestName} - ${coupleNames} wedding memories`;
@@ -160,8 +161,8 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">No photos yet</h2>
           <p className="text-lg">
-            Be the first to share a memory from {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'} &{' '}
-            {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}&apos;s special day!
+            Be the first to share a memory from {appConfig.brideName} &{' '}
+            {appConfig.groomName}&apos;s special day!
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { Upload } from '../components/Upload';
 import { Skeleton } from '../components/ui/skeleton';
+import { appConfig } from '../config';
 
 export default function Loading() {
   return (
@@ -8,9 +9,9 @@ export default function Loading() {
         <header className="flex justify-between items-start gap-4 mb-8">
           <div className="flex flex-col gap-1 flex-1">
             <h1 className="text-2xl sm:text-3xl font-serif font-light text-foreground leading-tight">
-              <span className="text-primary font-medium">{process.env.NEXT_PUBLIC_GROOM_NAME}</span>
+              <span className="text-primary font-medium">{appConfig.brideName}</span>
               <span className="text-muted-foreground mx-2 font-light">&</span>
-              <span className="text-primary font-medium">{process.env.NEXT_PUBLIC_BRIDE_NAME}</span>
+              <span className="text-primary font-medium">{appConfig.groomName}</span>
             </h1>
             <p className="text-sm text-muted-foreground font-light">Wedding Memories</p>
           </div>

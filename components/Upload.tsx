@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { appConfig } from '../config';
 
 import { Button } from './ui/button';
 import { useGuestName, useSetGuestName, useAddPhoto } from '../store/useAppStore';
@@ -877,8 +878,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               <div>
                 <DialogTitle>Share Wedding Memories</DialogTitle>
                 <DialogDescription>
-                  Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'} &{' '}
-                  {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}&apos;s wedding gallery
+                  Select photos to add to {appConfig.brideName} &{' '}
+                  {appConfig.groomName}&apos;s wedding gallery
                 </DialogDescription>
               </div>
               <div className="flex items-center gap-2 text-sm">
@@ -947,8 +948,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           <div className="space-y-2">
             <DrawerTitle>Share Wedding Memories</DrawerTitle>
             <DrawerDescription>
-              Select photos to add to {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'} &{' '}
-              {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}&apos;s wedding gallery
+              Select photos to add to {appConfig.brideName} &{' '}
+              {appConfig.groomName}&apos;s wedding gallery
             </DrawerDescription>
             <div className="flex items-center justify-between pt-2 border-t">
               <div className="flex items-center gap-2 text-sm">

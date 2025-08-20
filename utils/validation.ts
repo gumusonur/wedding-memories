@@ -189,8 +189,6 @@ export function validateEnvironmentVariables(env: Record<string, string | undefi
     'CLOUDINARY_API_KEY',
     'CLOUDINARY_API_SECRET',
     'CLOUDINARY_FOLDER',
-    'NEXT_PUBLIC_BRIDE_NAME',
-    'NEXT_PUBLIC_GROOM_NAME',
   ];
 
   const missingVars = requiredVars.filter((varName) => !env[varName]);
@@ -202,14 +200,6 @@ export function validateEnvironmentVariables(env: Record<string, string | undefi
     );
   }
 
-  // Validate that names are not empty
-  if (!env.NEXT_PUBLIC_BRIDE_NAME?.trim()) {
-    throw new ValidationError('Bride name cannot be empty', 'NEXT_PUBLIC_BRIDE_NAME');
-  }
-
-  if (!env.NEXT_PUBLIC_GROOM_NAME?.trim()) {
-    throw new ValidationError('Groom name cannot be empty', 'NEXT_PUBLIC_GROOM_NAME');
-  }
 }
 
 /**
