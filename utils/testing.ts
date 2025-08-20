@@ -128,8 +128,6 @@ export class TestEnvironment {
       CLOUDINARY_API_KEY: 'test-api-key',
       CLOUDINARY_API_SECRET: 'test-api-secret',
       CLOUDINARY_FOLDER: 'test-wedding-photos',
-      NEXT_PUBLIC_BRIDE_NAME: 'Test Bride',
-      NEXT_PUBLIC_GROOM_NAME: 'Test Groom',
     };
 
     return { ...defaultEnv, ...overrides };

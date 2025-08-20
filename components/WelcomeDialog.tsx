@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { appConfig } from '../config';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -66,11 +67,11 @@ export function WelcomeDialog() {
           <DialogDescription className="text-base leading-relaxed">
             Hi! You&apos;re viewing{' '}
             <span className="font-medium text-primary">
-              {process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'}
+              {appConfig.brideName}
             </span>{' '}
             &{' '}
             <span className="font-medium text-primary">
-              {process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}
+              {appConfig.groomName}
             </span>
             &apos;s wedding memories. Please share your name so we can credit any photos you add.
           </DialogDescription>

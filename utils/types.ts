@@ -75,8 +75,6 @@ export interface EnvironmentConfig {
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
   CLOUDINARY_FOLDER: string;
-  NEXT_PUBLIC_BRIDE_NAME: string;
-  NEXT_PUBLIC_GROOM_NAME: string;
 }
 
 /**
