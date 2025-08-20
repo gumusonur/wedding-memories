@@ -17,6 +17,7 @@ import {
   useLastRefreshTime,
   useSetIsLoadingPhotos,
   useRefreshPhotos,
+  useGuestName,
 } from '../store/useAppStore';
 
 interface PhotoGalleryProps {
@@ -99,6 +100,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const lastRefreshTime = useLastRefreshTime();
   const setIsLoading = useSetIsLoadingPhotos();
   const refresh = useRefreshPhotos();
+  const guestName = useGuestName();
 
   // Initialize photos from server-side props
   useEffect(() => {
@@ -114,7 +116,13 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const refetchWeddingPhotos = useCallback(async (): Promise<number> => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/photos', {
+      // Build URL with guest parameter if isolation is enabled and guest name exists
+      let url = '/api/photos';
+      if (appConfig.guestIsolation && guestName) {
+        url += `?guest=${encodeURIComponent(guestName)}`;
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Cache-Control': 'no-cache',
         },
@@ -134,7 +142,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
       setIsLoading(false);
     }
     return 0;
-  }, [setPhotos, setIsLoading, refresh]);
+  }, [setPhotos, setIsLoading, refresh, guestName]);
 
   /**
    * Opens modal with specific photo - instant client-side action.

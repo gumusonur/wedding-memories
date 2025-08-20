@@ -1,5 +1,6 @@
 import cloudinary from '../utils/cloudinary';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
+import { appConfig } from '../config';
 import type { ImageProps } from '../utils/types';
 import { ClientGalleryWrapper } from '@/components/ClientGalleryWrapper';
 import { PhotoGallery } from '@/components/PhotoGallery';
@@ -7,11 +8,14 @@ import { PhotoGallery } from '@/components/PhotoGallery';
 export const revalidate = 0;
 
 /**
- * Fetches all wedding photos from Cloudinary with metadata and blur placeholders.
+ * Fetches wedding photos from Cloudinary with metadata and blur placeholders.
  *
  * This function retrieves photos from the configured Cloudinary folder,
  * transforms them into the application's ImageProps format, and generates
  * blur placeholders for smooth loading experiences.
+ * 
+ * Note: Server-side fetching always shows all photos. Guest isolation 
+ * filtering only applies to client-side API calls.
  *
  * @returns Promise that resolves to an array of processed image data
  * @throws {Error} If Cloudinary API fails or environment variables are missing
