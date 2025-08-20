@@ -15,15 +15,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: `${groomName} & ${brideName} Wedding Memories`,
+  title: `${brideName} & ${groomName} Wedding Memories`,
   description: 'Beautiful wedding memories captured in time.',
   openGraph: {
-    title: `${groomName} & ${brideName} Wedding Memories`,
+    title: `${brideName} & ${groomName} Wedding Memories`,
     description: 'Beautiful wedding memories captured in time.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${groomName} & ${brideName} Wedding Memories`,
+    title: `${brideName} & ${groomName} Wedding Memories`,
     description: 'Beautiful wedding memories captured in time.',
   },
   icons: {
