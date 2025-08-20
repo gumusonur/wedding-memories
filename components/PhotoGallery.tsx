@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import type { ImageProps } from '../utils/types';
 import { appConfig } from '../config';
@@ -101,6 +101,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   const setIsLoading = useSetIsLoadingPhotos();
   const refresh = useRefreshPhotos();
   const guestName = useGuestName();
+  const previousGuestName = useRef<string | null>(null);
 
   // Initialize photos from server-side props
   useEffect(() => {
@@ -112,9 +113,13 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   /**
    * Refetches photos from the server to update the gallery.
    * Used after new photos are uploaded to refresh the display.
+   * 
+   * @param showLoading - Whether to show loading animation (default: true)
    */
-  const refetchWeddingPhotos = useCallback(async (): Promise<number> => {
-    setIsLoading(true);
+  const refetchWeddingPhotos = useCallback(async (showLoading: boolean = true): Promise<number> => {
+    if (showLoading) {
+      setIsLoading(true);
+    }
     try {
       // Build URL with guest parameter if isolation is enabled and guest name exists
       let url = '/api/photos';
@@ -139,7 +144,9 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
     } catch (error) {
       console.error('Network error while refetching photos:', error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
     return 0;
   }, [setPhotos, setIsLoading, refresh, guestName]);
@@ -147,7 +154,14 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
   // Auto-fetch photos when guest isolation is enabled and guest name is available or changes
   useEffect(() => {
     if (appConfig.guestIsolation && guestName) {
-      refetchWeddingPhotos();
+      // Check if this is a name change (not initial load)
+      const isNameChange = previousGuestName.current !== null && previousGuestName.current !== guestName;
+      
+      // Don't show loading animation for name changes to prevent UI glitches
+      refetchWeddingPhotos(!isNameChange);
+      
+      // Update previous guest name
+      previousGuestName.current = guestName;
     }
   }, [guestName, refetchWeddingPhotos]);
 

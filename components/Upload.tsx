@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { appConfig } from '../config';
 
@@ -70,7 +70,10 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [newGuestName, setNewGuestName] = useState('');
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [currentNameValue, setCurrentNameValue] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -78,13 +81,48 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Name validation function
+  const validateName = (name: string): string | null => {
+    if (!name || !name.trim()) {
+      return 'Name cannot be empty';
+    }
+
+    const trimmed = name.trim();
+    
+    if (trimmed.length < 2) {
+      return 'Name must be at least 2 characters';
+    }
+    
+    if (trimmed.length > 50) {
+      return 'Name must be less than 50 characters';
+    }
+
+    // Only allow letters, spaces, hyphens, apostrophes, and common international characters
+    const nameRegex = /^[a-zA-ZÀ-ÿĀ-žА-я\s\-'\.]+$/;
+    if (!nameRegex.test(trimmed)) {
+      return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+
+    // Check for only whitespace or special characters
+    if (!/[a-zA-ZÀ-ÿĀ-žА-я]/.test(trimmed)) {
+      return 'Name must contain at least one letter';
+    }
+
+    // Basic inappropriate content check (simple list - could be enhanced)
+    const inappropriateWords = ['admin', 'test', 'null', 'undefined', 'anonymous'];
+    const lowerName = trimmed.toLowerCase();
+    if (inappropriateWords.some(word => lowerName.includes(word))) {
+      return 'Please use your real name';
+    }
+
+    return null;
+  };
+
   // Initialize guest name from store or props
   useEffect(() => {
-    const name = currentGuestName || guestName || '';
     if (currentGuestName && currentGuestName !== guestName) {
       setGuestName(currentGuestName);
     }
-    setNewGuestName(name);
   }, [currentGuestName, guestName, setGuestName]);
 
   // Detect screen size for responsive UI
@@ -423,24 +461,42 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setIsUploading(false);
   };
 
-  const handleNameChange = () => {
-    if (!newGuestName.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Name required',
-        description: 'Please enter a valid name.',
-      });
+  const handleNameChange = async () => {
+    const rawValue = currentNameValue;
+    const nameValue = rawValue.trim();
+    
+    // Final validation before submitting
+    const error = validateName(rawValue);
+    if (error) {
+      setNameError(error);
       return;
     }
 
-    const trimmedName = newGuestName.trim();
-    setGuestName(trimmedName);
+    setIsUpdatingName(true);
+    setNameError(null);
+    
+    // Add a small delay to show loading state (simulates processing)
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Clean the name: trim and normalize spaces
+    const cleanName = nameValue.replace(/\s+/g, ' ');
+    
+    setGuestName(cleanName);
     setIsEditingName(false);
+    setIsUpdatingName(false);
 
     toast({
       title: 'Name updated',
-      description: `Your name has been changed to ${trimmedName}`,
+      description: `Your name has been changed to ${cleanName}`,
     });
+  };
+
+  // Real-time validation handler
+  const handleNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCurrentNameValue(value);
+    const error = validateName(value);
+    setNameError(error);
   };
 
   const clearCompleted = () => {
@@ -464,34 +520,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const allPendingSelected =
     pendingFiles.length > 0 && selectedPendingFiles.length === pendingFiles.length;
 
-  // Shared guest name edit dialog
-  const GuestNameEditDialog = () => (
-    <Dialog open={isEditingName} onOpenChange={setIsEditingName}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Change Your Name</DialogTitle>
-          <DialogDescription>
-            Update the name that will be associated with your photos.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <Input
-            type="text"
-            placeholder="Enter your name"
-            value={newGuestName}
-            onChange={(e) => setNewGuestName(e.target.value)}
-            autoFocus
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsEditingName(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleNameChange}>Update Name</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   // Shared content component for both Dialog and Drawer
   const UploadContent = () => (
@@ -868,7 +896,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   if (isLargeScreen) {
     // Desktop: Use Dialog
     return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <TriggerButton />
         </DialogTrigger>
@@ -889,7 +918,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setNewGuestName(guestName);
                     setIsEditingName(true);
                   }}
                   className="h-7 px-2 text-xs"
@@ -932,14 +960,96 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             )}
           </DialogFooter>
         </DialogContent>
-        <GuestNameEditDialog />
       </Dialog>
+      
+      {/* Name edit dialog for desktop */}
+      <Dialog 
+        open={isEditingName} 
+        onOpenChange={(open) => {
+          if (!isUpdatingName) {
+            setIsEditingName(open);
+            if (open) {
+              setCurrentNameValue(guestName || '');
+              setNameError(null);
+            } else {
+              setNameError(null);
+            }
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Your Name</DialogTitle>
+            <DialogDescription>
+              Update the name that will be associated with your photos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                ref={nameInputRef}
+                type="text"
+                placeholder="Enter your name"
+                value={currentNameValue}
+                autoFocus
+                disabled={isUpdatingName}
+                onChange={handleNameInput}
+                onKeyDown={(e) => {
+                  if (isUpdatingName) return;
+                  
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!nameError) {
+                      handleNameChange();
+                    }
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsEditingName(false);
+                  }
+                }}
+                className={nameError ? 'border-destructive focus:border-destructive' : ''}
+              />
+              <div className="h-6 flex items-center">
+                {nameError && (
+                  <p className="text-sm text-destructive flex items-center gap-2">
+                    <span className="w-4 h-4">⚠️</span>
+                    {nameError}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (!isUpdatingName) {
+                  setIsEditingName(false);
+                }
+              }}
+              className="w-full sm:w-auto order-2 sm:order-1"
+              disabled={isUpdatingName}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleNameChange}
+              className="w-full sm:w-auto order-1 sm:order-2"
+              disabled={isUpdatingName || !!nameError}
+            >
+              {isUpdatingName ? 'Updating...' : 'Update Name'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </>
     );
   }
 
   // Mobile/Tablet: Use Drawer
   return (
-    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+    <>
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
         <TriggerButton />
       </DrawerTrigger>
@@ -951,23 +1061,19 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               Select photos to add to {appConfig.brideName} &{' '}
               {appConfig.groomName}&apos;s wedding gallery
             </DrawerDescription>
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Adding as:</span>
-                <span className="font-medium text-foreground">{guestName || 'Not set'}</span>
+            <div 
+              className="pt-2 border-t cursor-pointer"
+              onClick={() => {
+                setIsEditingName(true);
+              }}
+            >
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Adding photos as:</span>
+                  <span className="font-medium text-foreground">{guestName || 'Not set'}</span>
+                </div>
+                <Edit className="w-4 h-4 text-muted-foreground" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setNewGuestName(guestName);
-                  setIsEditingName(true);
-                }}
-                className="h-7 px-2 text-xs"
-              >
-                <Edit className="w-3 h-3 mr-1" />
-                Edit
-              </Button>
             </div>
           </div>
         </DrawerHeader>
@@ -1007,7 +1113,88 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           )}
         </DrawerFooter>
       </DrawerContent>
-      <GuestNameEditDialog />
     </Drawer>
+    
+    {/* Name edit dialog for mobile */}
+    <Dialog 
+      open={isEditingName} 
+      onOpenChange={(open) => {
+        if (!isUpdatingName) {
+          setIsEditingName(open);
+          if (open) {
+            setCurrentNameValue(guestName || '');
+            setNameError(null);
+          } else {
+            setNameError(null);
+          }
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Your Name</DialogTitle>
+          <DialogDescription>
+            Update the name that will be associated with your photos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Input
+              ref={nameInputRef}
+              type="text"
+              placeholder="Enter your name"
+              value={currentNameValue}
+              autoFocus
+              disabled={isUpdatingName}
+              onChange={handleNameInput}
+              onKeyDown={(e) => {
+                if (isUpdatingName) return;
+                
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (!nameError) {
+                    handleNameChange();
+                  }
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setIsEditingName(false);
+                }
+              }}
+              className={nameError ? 'border-destructive focus:border-destructive' : ''}
+            />
+            <div className="h-6 flex items-center">
+              {nameError && (
+                <p className="text-sm text-destructive flex items-center gap-2">
+                  <span className="w-4 h-4">⚠️</span>
+                  {nameError}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              if (!isUpdatingName) {
+                setIsEditingName(false);
+              }
+            }}
+            className="w-full sm:w-auto order-2 sm:order-1"
+            disabled={isUpdatingName}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleNameChange}
+            className="w-full sm:w-auto order-1 sm:order-2"
+            disabled={isUpdatingName || !!nameError}
+          >
+            {isUpdatingName ? 'Updating...' : 'Update Name'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
