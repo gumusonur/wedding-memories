@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import cloudinary from '../../../utils/cloudinary';
 import generateBlurPlaceholder from '../../../utils/generateBlurPlaceholder';
+import { appConfig } from '../../../config';
 import type { ImageProps, ApiResponse, ApiErrorResponse } from '../../../utils/types';
 
 /**
@@ -18,10 +19,20 @@ function validatePhotoFetchEnvironment(): void {
  * Transforms Cloudinary search results into application ImageProps format.
  *
  * @param cloudinaryResources - Raw resources from Cloudinary search
+ * @param filterGuest - Optional guest name to filter by
  * @returns Array of transformed image data
  */
-function transformCloudinaryResults(cloudinaryResources: any[]): ImageProps[] {
-  return cloudinaryResources.map((resource, index) => ({
+function transformCloudinaryResults(cloudinaryResources: any[], filterGuest?: string): ImageProps[] {
+  let resources = cloudinaryResources;
+  
+  // Filter by guest if specified and guestIsolation is enabled
+  if (appConfig.guestIsolation && filterGuest) {
+    resources = cloudinaryResources.filter(resource => 
+      resource.context?.guest === filterGuest
+    );
+  }
+  
+  return resources.map((resource, index) => ({
     id: index,
     height: resource.height?.toString() || '480',
     width: resource.width?.toString() || '720',
@@ -47,16 +58,24 @@ function createTimeoutPromise(timeoutMs: number): Promise<never> {
 }
 
 /**
- * Handles GET requests to fetch all wedding photos.
+ * Handles GET requests to fetch wedding photos.
  *
- * This endpoint provides a refreshed list of all photos from Cloudinary,
- * primarily used for updating the gallery after new uploads.
+ * This endpoint provides a refreshed list of photos from Cloudinary,
+ * with optional filtering based on guest isolation settings.
+ * 
+ * Query parameters:
+ * - guest: Filter photos by guest name (only used if guestIsolation is true)
  *
+ * @param request - Next.js request object
  * @returns JSON response with photo array or error message
  */
-export async function GET(): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
+export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
   try {
     validatePhotoFetchEnvironment();
+
+    // Extract guest filter from query parameters
+    const { searchParams } = new URL(request.url);
+    const guestFilter = searchParams.get('guest');
 
     // Wrap Cloudinary request in Promise.race with 10-second timeout
     const cloudinaryRequest = cloudinary.v2.search
@@ -70,10 +89,15 @@ export async function GET(): Promise<NextResponse<ApiResponse<ImageProps[]>>> {
 
     const searchResults = await Promise.race([cloudinaryRequest, timeoutPromise]);
 
-    const transformedPhotos = transformCloudinaryResults(searchResults.resources);
+    const transformedPhotos = transformCloudinaryResults(searchResults.resources, guestFilter || undefined);
 
-    const blurPlaceholderPromises = searchResults.resources.map((resource: any) => {
-      return generateBlurPlaceholder(resource);
+    // Generate blur placeholders only for the filtered photos
+    const blurPlaceholderPromises = transformedPhotos.map((photo) => {
+      // Find the original resource for this photo
+      const originalResource = searchResults.resources.find((resource: any) => 
+        resource.public_id === photo.public_id
+      );
+      return generateBlurPlaceholder(originalResource);
     });
 
     const blurPlaceholders = await Promise.all(blurPlaceholderPromises);
