@@ -52,7 +52,7 @@ function formatUploadDate(dateString: string, locale: string = 'en-US'): string 
  * @returns Descriptive alt text for screen readers
  */
 function generatePhotoAltText(guestName?: string, photoIndex?: number): string {
-  const coupleNames = `${process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'} & ${process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'}`;
+  const coupleNames = `${process.env.NEXT_PUBLIC_BRIDE_NAME || 'Bride'} & ${process.env.NEXT_PUBLIC_GROOM_NAME || 'Groom'}`;
 
   if (guestName && guestName !== 'Unknown Guest') {
     return `Wedding photo shared by ${guestName} - ${coupleNames} wedding memories`;

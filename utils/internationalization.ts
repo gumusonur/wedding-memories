@@ -35,26 +35,26 @@ export const UI_TEXT = {
     gallery: {
       title: 'Wedding Memories',
       noPhotos: 'No photos yet',
-      noPhotosDescription: (groomName: string, brideName: string) =>
-        `Be the first to share a memory from ${groomName} & ${brideName}'s special day!`,
+      noPhotosDescription: (brideName: string, groomName: string) =>
+        `Be the first to share a memory from ${brideName} & ${groomName}'s special day!`,
       loadingPhotos: 'Loading new photos...',
       photoCount: (count: number) => `${count} photo${count !== 1 ? 's' : ''}`,
       sharedBy: (name: string) => `Shared by ${name}`,
       openPhoto: (index: number, guestName?: string) =>
         `Open photo ${index + 1}${guestName ? ` shared by ${guestName}` : ''}`,
-      photoAltText: (groomName: string, brideName: string, guestName?: string, index?: number) => {
+      photoAltText: (brideName: string, groomName: string, guestName?: string, index?: number) => {
         if (guestName && guestName !== 'Unknown Guest') {
-          return `Wedding photo shared by ${guestName} - ${groomName} & ${brideName} wedding memories`;
+          return `Wedding photo shared by ${guestName} - ${brideName} & ${groomName} wedding memories`;
         }
-        return `Wedding photo${index ? ` #${index + 1}` : ''} - ${groomName} & ${brideName} wedding memories`;
+        return `Wedding photo${index ? ` #${index + 1}` : ''} - ${brideName} & ${groomName} wedding memories`;
       },
     },
 
     // Upload Component
     upload: {
       title: 'Share Wedding Memories',
-      description: (groomName: string, brideName: string) =>
-        `Select photos to add to ${groomName} & ${brideName}'s wedding gallery`,
+      description: (brideName: string, groomName: string) =>
+        `Select photos to add to ${brideName} & ${groomName}'s wedding gallery`,
       addPhotos: 'Add Photos',
       addingAs: 'Adding as:',
       notSet: 'Not set',
