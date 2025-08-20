@@ -144,6 +144,13 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
     return 0;
   }, [setPhotos, setIsLoading, refresh, guestName]);
 
+  // Auto-fetch photos when guest isolation is enabled and guest name is available
+  useEffect(() => {
+    if (appConfig.guestIsolation && guestName && photos.length === 0 && initialImages.length === 0) {
+      refetchWeddingPhotos();
+    }
+  }, [guestName, photos.length, initialImages.length, refetchWeddingPhotos]);
+
   /**
    * Opens modal with specific photo - instant client-side action.
    */
