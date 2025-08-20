@@ -66,13 +66,15 @@ async function fetchWeddingPhotos(): Promise<ImageProps[]> {
  * Home page component that displays the wedding photo gallery.
  *
  * This page serves as the main entry point for the wedding memories application.
- * It fetches all photos at build time for optimal performance and provides
- * a client-side modal experience using cached photos for instant display.
+ * When guest isolation is disabled, it fetches all photos at build time for optimal performance.
+ * When guest isolation is enabled, it shows an empty gallery initially and lets the client
+ * fetch photos based on the guest name.
  *
  * @returns JSX element containing the photo gallery with integrated modal
  */
 export default async function WeddingGalleryHomePage() {
-  const weddingPhotos = await fetchWeddingPhotos();
+  // If guest isolation is enabled, start with empty array to let client-side filtering handle it
+  const weddingPhotos = appConfig.guestIsolation ? [] : await fetchWeddingPhotos();
 
   return (
     <ClientGalleryWrapper>
