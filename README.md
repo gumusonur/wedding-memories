@@ -11,6 +11,9 @@ A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and s
 - **Multiple file upload** with drag & drop, batch selection, and progress tracking
 - **Real-time gallery updates** automatically refresh after uploads
 - **Guest welcome system** with name collection and persistent storage
+- **Guest isolation mode** - filter photos by guest when enabled in config
+- **Advanced name validation** with real-time feedback and comprehensive rules
+- **Mobile-optimized UX** with improved touch targets and responsive design
 - **Full accessibility** (WCAG 2.1 AA, ARIA labels, screen readers)
 - **Dark/light theme** support with system preference detection
 - **Transparent loading screens** that show content behind blur
@@ -38,11 +41,12 @@ A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and s
    pnpm install
    ```
 
-2. **Configure environment**
+2. **Configure environment and settings**
 
    ```bash
    cp .env.example .env
-   # Edit .env with your Cloudinary credentials and couple names
+   # Edit .env with your Cloudinary credentials
+   # Edit config.ts for couple names and features
    ```
 
 3. **Start development**
@@ -52,17 +56,30 @@ A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and s
    # Open http://localhost:3000
    ```
 
-### Required Environment Variables
+### Configuration Files
 
+**Environment Variables (.env)**
 ```bash
 # Cloudinary Configuration
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name_here
 CLOUDINARY_API_KEY=your_api_key_here
 CLOUDINARY_API_SECRET=your_api_secret_here
 CLOUDINARY_FOLDER=wedding
-
-# Note: Couple names are now configured in config.ts file
 ```
+
+**App Configuration (config.ts)**
+```typescript
+export const appConfig = {
+  brideName: 'YourBrideName',
+  groomName: 'YourGroomName',
+  guestIsolation: false, // Set to true to filter photos by guest
+};
+```
+
+**Guest Isolation Mode**
+- When `guestIsolation: true`, each guest only sees photos they uploaded
+- When `guestIsolation: false`, all guests see all photos (default behavior)
+- Server-side rendering shows empty gallery when isolation is enabled
 
 ## 📁 Project Structure
 
@@ -74,7 +91,7 @@ CLOUDINARY_FOLDER=wedding
 ├── components/            # React components
 │   ├── ui/               # shadcn/ui components (Button, Drawer, etc.)
 │   ├── PhotoGallery.tsx  # Masonry grid with modal integration
-│   ├── Upload.tsx        # Photo upload with progress tracking
+│   ├── Upload.tsx        # Photo upload with name validation
 │   ├── CachedModal.tsx   # Modal with photo caching
 │   ├── AppLoader.tsx     # Startup loader with couple names
 │   └── WelcomeDialog.tsx # Guest name collection
@@ -82,10 +99,11 @@ CLOUDINARY_FOLDER=wedding
 │   └── useAppStore.ts    # Global state store
 ├── utils/                # Utilities and helpers
 │   ├── types.ts          # TypeScript interfaces
-│   ├── validation.ts     # Input validation
+│   ├── validation.ts     # Input validation utilities
 │   ├── cloudinary.ts     # Cloudinary API integration
 │   ├── imageOptimization.ts # Image processing helpers
 │   └── testing.ts        # Test utilities and mocks
+├── config.ts             # App configuration (couple names, features)
 ```
 
 ## 📝 Development
@@ -114,15 +132,19 @@ Deploy to [Vercel](https://vercel.com/new/clone) (recommended), Netlify, or any 
    - Set build command: `pnpm build`
    - Set output directory: `.next`
 
-## 🔍 Code Quality
+## 🔍 Code Quality & Features
 
 - **TypeScript strict mode** with comprehensive type safety
 - **WCAG 2.1 AA accessibility** compliance throughout  
 - **Security-first validation** with input sanitization and file type checking
+- **Advanced name validation** with real-time feedback, length limits, and character restrictions
+- **Guest isolation system** with server-side and client-side filtering
+- **Mobile-optimized UX** with improved touch targets and responsive dialogs
 - **Performance optimizations** with Next.js Image, Cloudinary transformations, and caching
 - **Progressive enhancement** with graceful fallbacks for all features
 - **Real-time state management** with Zustand and localStorage persistence
 - **Mobile-first responsive design** with Tailwind CSS utilities
+- **Stable React components** preventing unnecessary re-renders and animations
 
 ## 🤝 Contributing
 
