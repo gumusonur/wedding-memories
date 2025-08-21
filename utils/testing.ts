@@ -1,7 +1,7 @@
 /**
  * Testing utilities and helpers for the wedding gallery application.
  *
- * This module provides testing utilities following CLAUDE.md standards:
+ * This module provides testing utilities following project standards:
  * - Cross-platform testing support
  * - Mock data factories for consistent testing
  * - Accessibility testing helpers

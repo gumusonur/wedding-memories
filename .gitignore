@@ -17,7 +17,7 @@
 /.next/
 /out/
 
-# claude code
+# AI tools
 .claude
 
 # production
