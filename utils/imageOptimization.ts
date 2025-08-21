@@ -1,30 +1,32 @@
 /**
- * Next.js optimized image utilities that leverage built-in features.
+ * Storage-agnostic image optimization utilities.
  *
- * This module provides utilities that work with Next.js Image component
- * to achieve optimal performance using built-in features rather than
- * custom implementations.
+ * This module provides utilities that work with any storage provider
+ * (Cloudinary, S3/Wasabi) and generate appropriate URLs based on
+ * the configured storage provider.
  */
 
 import type { ImageProps } from './types';
+import { getImageUrl, getThumbnailUrl, getFullUrl } from './imageUrl';
 
 /**
- * Generates optimized Cloudinary URLs that work well with Next.js Image loader
+ * Generates optimized image URLs that work with any storage provider.
  */
 export function getOptimizedImageUrl(
   publicId: string,
   format: string,
   quality: 'thumb' | 'medium' | 'full' = 'medium'
 ): string {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-
-  const transformations = {
-    thumb: 'c_scale,w_180,q_auto,f_auto',
-    medium: 'c_scale,w_720,q_auto,f_auto',
-    full: 'c_scale,w_1280,q_auto,f_auto',
-  };
-
-  return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations[quality]}/${publicId}.${format}`;
+  switch (quality) {
+    case 'thumb':
+      return getThumbnailUrl(publicId);
+    case 'medium':
+      return getImageUrl(publicId, 720, undefined, 'medium');
+    case 'full':
+      return getFullUrl(publicId);
+    default:
+      return getImageUrl(publicId);
+  }
 }
 
 /**
@@ -127,7 +129,7 @@ export function prefetchOnInteraction(
 }
 
 /**
- * Generates optimized image props for Next.js Image component
+ * Generates optimized image props for storage-aware image component
  */
 export function getOptimizedImageProps(
   image: ImageProps,

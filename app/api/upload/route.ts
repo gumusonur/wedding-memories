@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import cloudinary from '../../../utils/cloudinary';
-import { processImageForUpload } from '../../../utils/imageProcessor';
+import { storage } from '../../../storage';
 import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rateLimit';
-import type { ApiResponse, UploadResponse, ApiErrorResponse } from '../../../utils/types';
+import type { ApiErrorResponse } from '../../../utils/types';
 
 /**
  * Validation error class for input validation failures.
@@ -20,23 +19,22 @@ class ValidationError extends Error {
 /**
  * Validates the upload request payload.
  *
- * @param file - Base64 encoded file data
- * @param guestName - Name of the guest uploading the photo
+ * @param formData - Form data containing file and guest name
  * @throws {ValidationError} If validation fails
  */
-function validateUploadRequest(
-  file: unknown,
-  guestName: unknown
-): { file: string; guestName: string } {
-  if (!file || typeof file !== 'string') {
-    throw new ValidationError('Valid file data is required', 'file');
+function validateUploadRequest(formData: FormData): { file: File; guestName: string } {
+  const file = formData.get('file') as File;
+  const guestName = formData.get('guestName') as string;
+
+  if (!file || !(file instanceof File)) {
+    throw new ValidationError('Valid file is required', 'file');
   }
 
-  if (!file.startsWith('data:image/')) {
+  if (!file.type.startsWith('image/')) {
     throw new ValidationError('File must be a valid image format', 'file');
   }
 
-  const trimmedGuestName = typeof guestName === 'string' ? guestName.trim() : '';
+  const trimmedGuestName = guestName?.trim() || '';
   if (!trimmedGuestName) {
     throw new ValidationError('Guest name is required', 'guestName');
   }
@@ -48,35 +46,16 @@ function validateUploadRequest(
   return { file, guestName: trimmedGuestName };
 }
 
-/**
- * Validates environment configuration for Cloudinary.
- *
- * @throws {Error} If required environment variables are missing
- */
-function validateEnvironment(): void {
-  const requiredVars = [
-    'CLOUDINARY_FOLDER',
-    'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
-    'CLOUDINARY_API_KEY',
-    'CLOUDINARY_API_SECRET',
-  ];
-
-  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
-
-  if (missingVars.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-  }
-}
 
 /**
- * Handles photo upload requests to Cloudinary.
+ * Handles photo upload requests using the configured storage provider.
  *
- * @param request - The incoming request containing file data and guest name
- * @returns JSON response with upload result or error
+ * @param request - The incoming request containing file and guest name
+ * @returns JSON response with upload URL or error
  */
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<ApiResponse<UploadResponse>>> {
+): Promise<NextResponse<{ url: string } | ApiErrorResponse>> {
   try {
     // Check rate limits first (fail fast)
     const rateLimitResult = checkUploadRateLimit(request);
@@ -92,47 +71,23 @@ export async function POST(
       });
     }
 
-    validateEnvironment();
-
-    const requestBody = await request.json().catch(() => {
-      throw new ValidationError('Invalid JSON payload');
+    const formData = await request.formData().catch(() => {
+      throw new ValidationError('Invalid form data');
     });
 
-    const { file, guestName } = validateUploadRequest(requestBody.file, requestBody.guestName);
+    const { file, guestName } = validateUploadRequest(formData);
 
-    // Process image to reduce file size while maintaining quality
-    const processedFile = await processImageForUpload(file);
+    // Upload using the configured storage provider
+    const uploadResult = await storage.upload(file, guestName);
 
-    const uploadResult = await cloudinary.v2.uploader.upload(processedFile, {
-      folder: process.env.CLOUDINARY_FOLDER,
-      context: { guest: guestName },
-      resource_type: 'image',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-      max_file_size: 10485760, // 10MB limit
-      quality: 'auto:good',
-      fetch_format: 'auto',
-    });
-
-    const response: UploadResponse = {
-      public_id: uploadResult.public_id,
-      version: uploadResult.version,
-      signature: uploadResult.signature,
-      width: uploadResult.width,
-      height: uploadResult.height,
-      format: uploadResult.format,
-      resource_type: uploadResult.resource_type,
-      created_at: uploadResult.created_at,
-      tags: uploadResult.tags || [],
-      bytes: uploadResult.bytes,
-      type: uploadResult.type,
-      etag: uploadResult.etag,
-      placeholder: uploadResult.placeholder || false,
-      url: uploadResult.url,
-      secure_url: uploadResult.secure_url,
-      context: uploadResult.context,
+    // Return photo metadata for immediate UI update
+    const photoData = {
+      ...uploadResult,
+      guestName,
+      uploadDate: uploadResult.created_at,
     };
 
-    return NextResponse.json(response, { 
+    return NextResponse.json(photoData, { 
       status: 201,
       headers: createRateLimitHeaders(rateLimitResult),
     });
@@ -145,14 +100,6 @@ export async function POST(
         details: error.field ? `Validation failed for field: ${error.field}` : undefined,
       };
       return NextResponse.json(errorResponse, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message.includes('environment')) {
-      const errorResponse: ApiErrorResponse = {
-        error: 'Server configuration error',
-        details: 'Please contact support if this persists',
-      };
-      return NextResponse.json(errorResponse, { status: 500 });
     }
 
     const errorResponse: ApiErrorResponse = {
