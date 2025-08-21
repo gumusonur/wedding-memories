@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run validate-env && next build",
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "validate-env": "node scripts/validate-env.js",
+    "deploy-check": "npm run validate-env && npm run type-check && npm run lint"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.872.0",
