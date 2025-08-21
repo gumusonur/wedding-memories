@@ -8,7 +8,7 @@
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
-import Image from 'next/image';
+import { StorageAwareImage } from './StorageAwareImage';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useKeypress } from '../hooks/useKeypress';
 import { useSwipeable } from 'react-swipeable';
@@ -26,6 +26,7 @@ import type { ImageProps } from '../utils/types';
 import { variants } from '../utils/animationVariants';
 import downloadPhoto from '../utils/downloadPhoto';
 import { getOptimizedImageProps } from '../utils/imageOptimization';
+import { getDownloadUrl, getExternalUrl } from '../utils/imageUrl';
 
 interface CachedModalProps {
   images: ImageProps[];
@@ -507,7 +508,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                       {/* Download and external link actions - top left */}
                       <div className="absolute top-4 left-0 z-20 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-lg p-1">
                         <a
-                          href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${currentImage.public_id}.${currentImage.format}`}
+                          href={getExternalUrl(currentImage.public_id, currentImage.format)}
                           className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
                           target="_blank"
                           title="Open fullsize version"
@@ -521,8 +522,8 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                           onClick={(e) => {
                             e.stopPropagation();
                             downloadPhoto(
-                              `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${currentImage.public_id}.${currentImage.format}`,
-                              `${currentIndex}.jpg`
+                              getDownloadUrl(currentImage.public_id, currentImage.format),
+                              `${currentIndex + 1}.${currentImage.format}`
                             );
                           }}
                           onTouchEnd={(e) => e.stopPropagation()}
@@ -627,7 +628,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                           transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                         }}
                       >
-                        <Image
+                        <StorageAwareImage
                           {...getOptimizedImageProps(currentImage, 'modal', {
                             priority: true,
                             quality: 'full',
@@ -676,7 +677,7 @@ export function CachedModal({ images, isOpen, initialIndex, onClose }: CachedMod
                               actualIndex === images.length - 1 ? 'rounded-r-md' : ''
                             } relative inline-block w-full shrink-0 transform-gpu overflow-hidden focus:outline-none`}
                           >
-                            <Image
+                            <StorageAwareImage
                               {...getOptimizedImageProps(image, 'thumb', {
                                 priority: Math.abs(actualIndex - currentIndex) <= 2,
                                 quality: 'thumb',

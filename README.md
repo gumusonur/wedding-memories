@@ -11,6 +11,8 @@ A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and s
 - **Multiple file upload** with drag & drop, batch selection, and progress tracking
 - **Real-time gallery updates** automatically refresh after uploads
 - **Guest welcome system** with name collection and persistent storage
+- **Multiple storage providers** - supports Cloudinary and S3/Wasabi with easy switching
+- **Storage abstraction layer** - unified API for different storage backends
 - **Guest isolation mode** - filter photos by guest when enabled in config
 - **Advanced name validation** with real-time feedback and comprehensive rules
 - **Mobile-optimized UX** with improved touch targets and responsive design
@@ -59,6 +61,8 @@ A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and s
 ### Configuration Files
 
 **Environment Variables (.env)**
+
+*For Cloudinary Storage:*
 ```bash
 # Cloudinary Configuration
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name_here
@@ -67,14 +71,35 @@ CLOUDINARY_API_SECRET=your_api_secret_here
 CLOUDINARY_FOLDER=wedding
 ```
 
+*For S3/Wasabi Storage:*
+```bash
+# AWS S3 / Wasabi Configuration
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+S3_BUCKET=your_bucket_name
+S3_ENDPOINT=https://s3.wasabisys.com  # Optional: for Wasabi or other S3-compatible services
+```
+
 **App Configuration (config.ts)**
 ```typescript
+export enum StorageProvider {
+  Cloudinary = 'cloudinary',
+  S3 = 's3',
+}
+
 export const appConfig = {
   brideName: 'YourBrideName',
   groomName: 'YourGroomName',
   guestIsolation: false, // Set to true to filter photos by guest
+  storage: StorageProvider.Cloudinary, // Storage provider selection
 };
 ```
+
+**Storage Providers**
+- **Cloudinary**: Cloud-based image storage with automatic optimization and transformations
+- **S3/Wasabi**: Object storage compatible with AWS S3 API, including Wasabi cloud storage
+- Switch providers by changing `storage` config and setting appropriate environment variables
 
 **Guest Isolation Mode**
 - When `guestIsolation: true`, each guest only sees photos they uploaded
@@ -97,6 +122,11 @@ export const appConfig = {
 │   └── WelcomeDialog.tsx # Guest name collection
 ├── store/                # Zustand state management
 │   └── useAppStore.ts    # Global state store
+├── storage/              # Storage abstraction layer
+│   ├── StorageService.ts # Storage interface definition
+│   ├── CloudinaryService.ts # Cloudinary implementation
+│   ├── S3Service.ts      # S3/Wasabi implementation
+│   └── index.ts          # Provider selection and export
 ├── utils/                # Utilities and helpers
 │   ├── types.ts          # TypeScript interfaces
 │   ├── validation.ts     # Input validation utilities

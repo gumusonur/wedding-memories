@@ -163,16 +163,22 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       try {
         const reader = new FileReader();
         reader.onload = (e) => {
-          resolve((e.target?.result as string) || '');
+          const result = e.target?.result;
+          if (result && typeof result === 'string') {
+            resolve(result);
+          } else {
+            console.warn('Thumbnail creation failed - no result for:', file.name);
+            resolve(''); // Return empty string instead of rejecting
+          }
         };
         reader.onerror = () => {
           console.warn('Thumbnail creation failed for:', file.name);
-          reject(new Error('Failed to create thumbnail'));
+          resolve(''); // Return empty string instead of rejecting
         };
         reader.readAsDataURL(file);
       } catch (error) {
         console.warn('FileReader not supported:', error);
-        reject(error);
+        resolve(''); // Return empty string instead of rejecting
       }
     });
   };
@@ -199,8 +205,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         // Fallback for older browsers using FileReader
         arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = () => reject(reader.error);
+          reader.onload = () => {
+            const result = reader.result;
+            if (result && result instanceof ArrayBuffer) {
+              resolve(result);
+            } else {
+              reject(new Error('Failed to read file as ArrayBuffer'));
+            }
+          };
+          reader.onerror = () => reject(reader.error || new Error('FileReader error'));
           reader.readAsArrayBuffer(file);
         });
       }
@@ -372,23 +385,21 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     );
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(uploadFile.file);
+      // Simulate progress
+      for (let progress = 10; progress <= 90; progress += 20) {
+        setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress } : f)));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
 
-      reader.onloadend = async () => {
-        const base64 = reader.result;
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', uploadFile.file);
+      formData.append('guestName', guestName);
 
-        // Simulate progress
-        for (let progress = 10; progress <= 90; progress += 20) {
-          setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress } : f)));
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file: base64, guestName }),
-        });
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
         const data = await res.json();
 
@@ -399,15 +410,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             )
           );
 
+          // Add photo directly to the UI for immediate feedback
           const newPhoto: ImageProps = {
             id: Date.now(), // Generate a unique numeric ID
-            public_id: data.public_id,
+            public_id: data.public_id || data.url,
             format: data.format,
             blurDataUrl: '', // Will be generated on next page load
-            guestName: guestName || 'Unknown Guest', // Use the current guest name from store
-            uploadDate: data.created_at,
-            height: data.height.toString(),
-            width: data.width.toString(),
+            guestName: data.guestName || guestName,
+            uploadDate: data.uploadDate || data.created_at,
+            height: data.height?.toString() || '480',
+            width: data.width?.toString() || '720',
           };
 
           addPhoto(newPhoto);
@@ -419,7 +431,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         } else {
           throw new Error(data.error || 'Upload failed');
         }
-      };
     } catch (error) {
       setFiles((prev) =>
         prev.map((f) =>

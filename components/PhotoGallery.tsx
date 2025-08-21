@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import type { ImageProps } from '../utils/types';
 import { appConfig } from '../config';
 import { getOptimizedImageProps, prefetchOnInteraction } from '../utils/imageOptimization';
+import { StorageAwareImage } from './StorageAwareImage';
 import CachedModal from './CachedModal';
 import {
   usePhotos,
@@ -165,6 +165,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
     }
   }, [guestName, refetchWeddingPhotos]);
 
+
   /**
    * Opens modal with specific photo - instant client-side action.
    */
@@ -247,7 +248,7 @@ export function PhotoGallery({ initialImages }: PhotoGalleryProps) {
             tabIndex={0}
             aria-label={`Open photo ${index + 1} ${guestName ? `shared by ${guestName}` : ''}`}
           >
-            <Image
+            <StorageAwareImage
               {...getOptimizedImageProps(
                 { id, public_id, format, blurDataUrl, guestName, uploadDate, height: "480", width: "720" },
                 'gallery',

@@ -9,6 +9,64 @@ const nextConfig = {
         pathname: '/**', // Allow all Cloudinary paths
         search: '',
       },
+      // Wasabi S3-compatible storage endpoints
+      {
+        protocol: 'https',
+        hostname: 's3.us-east-1.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.us-east-2.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.us-west-1.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.eu-central-1.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.ap-northeast-1.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.ap-southeast-1.wasabisys.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      // Standard AWS S3 endpoints (if someone wants to use AWS S3 instead of Wasabi)
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.*.amazonaws.com',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
     ],
     // Next.js Image optimization settings
     formats: ['image/webp', 'image/avif'], // Modern formats for better compression
