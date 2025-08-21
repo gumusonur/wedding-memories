@@ -97,9 +97,19 @@ export const appConfig = {
 ```
 
 **Storage Providers**
-- **Cloudinary**: Cloud-based image storage with automatic optimization and transformations
-- **S3/Wasabi**: Object storage compatible with AWS S3 API, including Wasabi cloud storage
-- Switch providers by changing `storage` config and setting appropriate environment variables
+- **Cloudinary**: Cloud-based image storage with automatic optimization, transformations, and blur placeholders
+- **S3/Wasabi**: Object storage compatible with AWS S3 API via secure proxy, supports Wasabi and AWS S3
+- **Seamless Switching**: Change providers instantly by updating `storage` config - no code changes required
+- **Smart Image Handling**: Automatic optimization for Cloudinary, proxy-based serving for S3/Wasabi
+- **Feature Parity**: Download, external links, and all functionality work identically across providers
+
+**S3/Wasabi Proxy Architecture**
+- **Secure Proxy**: `/api/s3-proxy/[...path]` endpoint serves S3 images via server-side AWS SDK
+- **CORS-Free**: Eliminates browser CORS issues by serving images from same origin
+- **Permission Independent**: Works with private S3 buckets without public access policies
+- **Download Support**: Automatic Content-Disposition headers for file downloads
+- **High Performance**: 1-year cache headers for optimal loading speed
+- **Error Handling**: Graceful fallbacks and proper HTTP status codes
 
 **Guest Isolation Mode**
 - When `guestIsolation: true`, each guest only sees photos they uploaded
@@ -110,12 +120,16 @@ export const appConfig = {
 
 ```
 ├── app/                    # Next.js App Router
-│   ├── api/               # API routes (photos, upload)
+│   ├── api/               # API routes
+│   │   ├── photos/        # Photo listing endpoint
+│   │   ├── upload/        # Photo upload endpoint
+│   │   └── s3-proxy/      # S3 image proxy for CORS-free serving
 │   ├── page.tsx           # Main gallery page with server components
 │   └── loading.tsx        # Global transparent loading UI
 ├── components/            # React components
 │   ├── ui/               # shadcn/ui components (Button, Drawer, etc.)
 │   ├── PhotoGallery.tsx  # Masonry grid with modal integration
+│   ├── StorageAwareImage.tsx # Storage-agnostic image rendering
 │   ├── Upload.tsx        # Photo upload with name validation
 │   ├── CachedModal.tsx   # Modal with photo caching
 │   ├── AppLoader.tsx     # Startup loader with couple names
@@ -124,14 +138,15 @@ export const appConfig = {
 │   └── useAppStore.ts    # Global state store
 ├── storage/              # Storage abstraction layer
 │   ├── StorageService.ts # Storage interface definition
-│   ├── CloudinaryService.ts # Cloudinary implementation
-│   ├── S3Service.ts      # S3/Wasabi implementation
+│   ├── CloudinaryService.ts # Cloudinary implementation with blur placeholders
+│   ├── S3Service.ts      # S3/Wasabi implementation with proxy support
 │   └── index.ts          # Provider selection and export
 ├── utils/                # Utilities and helpers
 │   ├── types.ts          # TypeScript interfaces
 │   ├── validation.ts     # Input validation utilities
+│   ├── imageUrl.ts       # Storage-agnostic URL generation
+│   ├── imageOptimization.ts # Storage-aware image optimization
 │   ├── cloudinary.ts     # Cloudinary API integration
-│   ├── imageOptimization.ts # Image processing helpers
 │   └── testing.ts        # Test utilities and mocks
 ├── config.ts             # App configuration (couple names, features)
 ```
