@@ -1,7 +1,7 @@
 /**
  * Error handling utilities and custom error classes for the wedding gallery application.
  *
- * This module follows CLAUDE.md principles for proper error handling:
+ * This module follows project principles for proper error handling:
  * - Fail fast with clear validation
  * - Specific error types with context
  * - User-friendly messages that don't expose technical details

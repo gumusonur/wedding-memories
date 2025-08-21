@@ -17,6 +17,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { Input } from './ui/input';
+import { validateGuestNameForUI, validateGuestName } from '../utils/validation';
 import { Progress } from './ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -81,41 +82,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Name validation function
+  // Name validation function with file system safety
   const validateName = (name: string): string | null => {
-    if (!name || !name.trim()) {
-      return 'Name cannot be empty';
-    }
-
-    const trimmed = name.trim();
-    
-    if (trimmed.length < 2) {
-      return 'Name must be at least 2 characters';
-    }
-    
-    if (trimmed.length > 50) {
-      return 'Name must be less than 50 characters';
-    }
-
-    // Only allow letters, spaces, hyphens, apostrophes, and common international characters
-    const nameRegex = /^[a-zA-ZÀ-ÿĀ-žА-я\s\-'\.]+$/;
-    if (!nameRegex.test(trimmed)) {
-      return 'Name can only contain letters, spaces, hyphens, and apostrophes';
-    }
-
-    // Check for only whitespace or special characters
-    if (!/[a-zA-ZÀ-ÿĀ-žА-я]/.test(trimmed)) {
-      return 'Name must contain at least one letter';
-    }
-
-    // Basic inappropriate content check (simple list - could be enhanced)
-    const inappropriateWords = ['admin', 'test', 'null', 'undefined', 'anonymous'];
-    const lowerName = trimmed.toLowerCase();
-    if (inappropriateWords.some(word => lowerName.includes(word))) {
-      return 'Please use your real name';
-    }
-
-    return null;
+    return validateGuestNameForUI(name);
   };
 
   // Initialize guest name from store or props
@@ -489,16 +458,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     // Add a small delay to show loading state (simulates processing)
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Clean the name: trim and normalize spaces
-    const cleanName = nameValue.replace(/\s+/g, ' ');
+    // Use validated and sanitized name
+    const sanitizedName = validateGuestName(rawValue);
     
-    setGuestName(cleanName);
+    setGuestName(sanitizedName);
     setIsEditingName(false);
     setIsUpdatingName(false);
 
     toast({
       title: 'Name updated',
-      description: `Your name has been changed to ${cleanName}`,
+      description: `Your name has been changed to ${sanitizedName}`,
     });
   };
 

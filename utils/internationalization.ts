@@ -2,7 +2,7 @@
  * Internationalization utilities and constants for the wedding gallery application.
  *
  * This file provides a foundation for future internationalization support,
- * following the CLAUDE.md standards for inclusive development.
+ * following the project standards for inclusive development.
  */
 
 /**
@@ -27,7 +27,7 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 
 /**
  * Text content for different UI elements with internationalization structure.
- * This follows the CLAUDE.md principle of being "welcoming to developers worldwide".
+ * This follows the project principle of being "welcoming to developers worldwide".
  */
 export const UI_TEXT = {
   'en-US': {

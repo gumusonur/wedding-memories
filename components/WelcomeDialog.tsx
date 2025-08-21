@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { appConfig } from '../config';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { GuestNameInput } from './GuestNameInput';
+import { validateGuestName } from '../utils/validation';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ export function WelcomeDialog() {
 
   const [name, setName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNameValid, setIsNameValid] = useState(false);
 
   useEffect(() => {
     // Only show the dialog if the store has hydrated and guest name is not set
@@ -33,21 +35,35 @@ export function WelcomeDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!isNameValid || !name.trim()) {
       toast({
         variant: 'destructive',
         title: 'Name required',
-        description: 'Please enter your name to continue.',
+        description: 'Please enter a valid name to continue.',
       });
       return;
     }
-    const trimmedName = name.trim();
-    setGuestName(trimmedName);
-    setIsDialogOpen(false); // Close dialog on successful submission
-    toast({
-      title: 'Welcome!',
-      description: `Nice to meet you, ${trimmedName}! You can now upload and view photos.`,
-    });
+    // Use validated and sanitized name
+    try {
+      const sanitizedName = validateGuestName(name);
+      setGuestName(sanitizedName);
+      setIsDialogOpen(false); // Close dialog on successful submission
+      toast({
+        title: 'Welcome!',
+        description: `Nice to meet you, ${sanitizedName}! You can now upload and view photos.`,
+      });
+    } catch (error) {
+      // This shouldn't happen if validation is working correctly in GuestNameInput
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: error instanceof Error ? error.message : 'Please check your name.',
+      });
+    }
+  };
+
+  const handleValidationChange = (isValid: boolean, error: string | null) => {
+    setIsNameValid(isValid);
   };
 
   if (!isDialogOpen) {
@@ -78,19 +94,29 @@ export function WelcomeDialog() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Input
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="text-center text-lg h-12 bg-muted/50 border-muted"
-              autoFocus
-            />
-          </div>
+          <GuestNameInput
+            value={name}
+            onChange={setName}
+            onValidationChange={handleValidationChange}
+            placeholder="Your name"
+            className="text-center text-lg h-12 bg-muted/50 border-muted"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (isNameValid) {
+                  handleSubmit(e);
+                }
+              }
+            }}
+          />
 
           <DialogFooter>
-            <Button type="submit" className="w-full h-11 text-base">
+            <Button 
+              type="submit" 
+              className="w-full h-11 text-base"
+              disabled={!isNameValid}
+            >
               View Wedding Gallery
             </Button>
           </DialogFooter>

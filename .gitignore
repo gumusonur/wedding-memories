@@ -45,11 +45,3 @@ bun.lockb
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Ignore AI-generated markdown files
-CLAUDE.md
-GEMINI.md
-REFACTORING_SUMMARY.md
-PROMPT.md
-AI_*.md
-*.ai.md
