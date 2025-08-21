@@ -21,11 +21,12 @@ const s3Client = new S3Client({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    // Reconstruct the S3 object key from the path
-    const objectKey = params.path.join('/');
+    // Await params and reconstruct the S3 object key from the path
+    const resolvedParams = await params;
+    const objectKey = resolvedParams.path.join('/');
     const bucket = process.env.NEXT_PUBLIC_S3_BUCKET;
 
     if (!bucket) {

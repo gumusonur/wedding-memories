@@ -76,6 +76,7 @@ export function StorageAwareImage({
   }
 
   // For S3/Wasabi, use direct img tag to avoid optimization
+  // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
       src={src}
