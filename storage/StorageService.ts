@@ -1,4 +1,4 @@
-import type { ImageProps } from '../utils/types';
+import type { MediaProps } from '../utils/types';
 
 /**
  * Upload result with metadata for immediate UI updates.
@@ -9,6 +9,7 @@ export interface UploadResult {
   width: number;
   height: number;
   format: string;
+  resource_type: 'image' | 'video';
   created_at: string;
 }
 
@@ -34,5 +35,5 @@ export interface StorageService {
    * @param guestName - Optional guest name to filter photos
    * @returns Promise that resolves to an array of photo data with metadata
    */
-  list(guestName?: string): Promise<ImageProps[]>;
+  list(guestName?: string): Promise<MediaProps[]>;
 }

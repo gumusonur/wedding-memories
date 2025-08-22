@@ -1,0 +1,367 @@
+/**
+ * Storage-aware media component that handles both Cloudinary and S3/Wasabi storage.
+ * 
+ * - For Cloudinary: Uses Next.js Image for optimization or a video tag.
+ * - For S3/Wasabi: Uses direct img/video tags to avoid optimization issues.
+ */
+
+import Image from 'next/image';
+import { useState, useRef, useEffect } from 'react';
+import { appConfig, StorageProvider } from '../config';
+import type { MediaProps } from '../utils/types';
+import { Play } from 'lucide-react';
+
+// Mobile detection utility
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+interface StorageAwareMediaProps extends Omit<MediaProps, 'id' | 'public_id'> {
+  src: string;
+  alt: string;
+  sizes?: string;
+  priority?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  tabIndex?: number;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  onLoad?: () => void;
+  draggable?: boolean;
+  poster?: string; // Add poster prop
+  controls?: boolean; // Add controls prop
+  context?: 'gallery' | 'modal' | 'thumb'; // Add context prop to determine size
+}
+
+export function StorageAwareMedia({
+  src,
+  alt,
+  width = '720',
+  height = '480',
+  resource_type,
+  className,
+  sizes,
+  priority = false,
+  blurDataUrl,
+  style,
+  onClick,
+  onMouseEnter,
+  tabIndex,
+  onKeyDown,
+  onLoad,
+  draggable = true,
+  poster,
+  controls,
+  context = 'gallery',
+}: StorageAwareMediaProps) {
+  const isCloudinary = appConfig.storage === StorageProvider.Cloudinary;
+  const widthNum = parseInt(width, 10);
+  const heightNum = parseInt(height, 10);
+
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Video-specific state and refs (declared before conditional logic)
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const isGalleryView = !controls;
+
+  // Detect mobile device on mount
+  useEffect(() => {
+    setIsMobile(isMobileDevice());
+  }, []);
+
+
+  useEffect(() => {
+    if (resource_type !== 'video') return;
+    
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Set initial loading state
+    setIsLoading(true);
+    setLoadError(false);
+
+    const handleLoadedMetadata = () => {
+      // For thumbnails, metadata is enough
+      if (context === 'thumb') {
+        setIsLoading(false);
+      }
+    };
+
+    const handleCanPlay = () => {
+      // Video is ready to play
+      setIsLoading(false);
+    };
+
+    const handleError = () => {
+      setLoadError(true);
+      setIsLoading(false);
+    };
+
+    // Check if video is already ready
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      if (context === 'thumb') {
+        setIsLoading(false);
+        return;
+      }
+    }
+    
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setIsLoading(false);
+      return;
+    }
+
+    const handleLoadStart = () => {
+      // Video has started loading
+      setIsLoading(true);
+      setLoadError(false);
+    };
+
+    // Add event listeners
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+
+    return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+    };
+  }, [resource_type, isGalleryView, context, src]);
+
+  const handlePlay = () => {
+    setHasStarted(true);
+    const video = videoRef.current;
+    if (video) {
+      // Ensure video is ready for playback
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        // Video needs more data - upgrade preload
+        video.preload = 'auto';
+        video.load(); // Force reload with auto preload
+      }
+      // Clear any loading states since user initiated play
+      setIsLoading(false);
+    }
+  };
+
+  const handleVideoInteraction = () => {
+    const video = videoRef.current;
+    if (video && video.preload === 'none') {
+      video.preload = 'metadata';
+      video.load();
+    }
+  };
+
+  if (resource_type === 'video') {
+    return (
+      <div 
+        className="relative group w-full h-full"
+        onClick={onClick}
+        onMouseEnter={() => {
+          handleVideoInteraction();
+          onMouseEnter?.();
+        }}
+        onFocus={handleVideoInteraction}
+        tabIndex={tabIndex}
+        onKeyDown={onKeyDown}
+      >
+        {/* Loading skeleton with clean video-focused design */}
+        {isLoading && !loadError && (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg flex items-center justify-center">
+            <div className={`flex flex-col items-center text-gray-600 dark:text-gray-300 ${
+              context === 'thumb' ? 'space-y-1' : 'space-y-3'
+            }`}>
+              <div className="relative">
+                <div className={`animate-spin rounded-full border-gray-400 border-t-transparent ${
+                  context === 'thumb' ? 'h-4 w-4 border' : 'h-8 w-8 border-2'
+                }`}></div>
+                <Play className={`absolute inset-0 m-auto text-gray-500 ${
+                  context === 'thumb' ? 'w-2 h-2' : 'w-4 h-4'
+                }`} />
+              </div>
+              <div className={`font-medium text-center ${
+                context === 'thumb' ? 'text-xs' : 'text-sm'
+              }`}>
+                {context === 'thumb' 
+                  ? (isMobile ? 'Preparing...' : 'Loading...') 
+                  : (isMobile ? 'Preparing video...' : 'Loading video...')
+                }
+              </div>
+              {context !== 'thumb' && !isMobile && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  First frame will appear soon
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {loadError && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+            <div className="text-center text-gray-600 dark:text-gray-300">
+              {context === 'thumb' ? (
+                <div className="text-xs font-medium">Error</div>
+              ) : (
+                <>
+                  <div className="text-sm font-medium mb-1">Video unavailable</div>
+                  <div className="text-xs opacity-75">Failed to load</div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Play overlay for gallery view - more prominent without poster */}
+        {isGalleryView && !isLoading && !loadError && (
+          <div 
+            className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-200 rounded-lg flex items-center justify-center"
+            onClick={(e) => {
+              // For gallery videos, ensure video is ready before playing
+              const video = videoRef.current;
+              if (video && !controls) {
+                e.stopPropagation();
+                if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+                  // Prepare video for play
+                  video.preload = 'auto';
+                  video.load();
+                  setIsLoading(true);
+                  video.addEventListener('canplay', () => {
+                    setIsLoading(false);
+                    video.play().catch(() => {
+                      // Fallback if autoplay fails
+                      setIsLoading(false);
+                    });
+                  }, { once: true });
+                } else {
+                  video.play().catch(() => {
+                    // Video play failed, user will need to try again
+                  });
+                }
+              }
+            }}
+          >
+            <div className={`bg-black/70 rounded-full opacity-90 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm shadow-lg ${
+              context === 'thumb' ? 'p-1' : 'p-4'
+            }`}>
+              <Play className={`text-white ${
+                context === 'thumb' ? 'w-2 h-2' : 'w-8 h-8'
+              }`} fill="white" />
+            </div>
+            {/* Video indicator badge - smaller for thumbs */}
+            {context !== 'thumb' && (
+              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                VIDEO
+              </div>
+            )}
+          </div>
+        )}
+
+        <video
+          ref={videoRef}
+          src={src}
+          className={`${className} ${isLoading || loadError ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 w-full h-full object-contain`}
+          style={{
+            ...style,
+          }}
+          controls={controls}
+          poster={poster}
+          onPlay={handlePlay}
+          draggable={draggable}
+          playsInline
+          muted={isGalleryView}
+          preload={context === 'thumb' ? 'metadata' : 'auto'}
+          disablePictureInPicture={isMobile}
+          onLoadedMetadata={() => {
+            // Force show first frame on mobile for thumbnails
+            if (isMobile && context === 'thumb' && videoRef.current) {
+              videoRef.current.currentTime = 0.1;
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  // For Cloudinary Images, use Next.js Image with optimization
+  if (isCloudinary) {
+    return (
+      <div className="relative" style={{ aspectRatio: `${widthNum}/${heightNum}` }}>
+        {/* Loading skeleton */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
+          </div>
+        )}
+        
+        <Image
+          src={src}
+          alt={alt}
+          width={widthNum}
+          height={heightNum}
+          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          sizes={sizes}
+          priority={priority}
+          loading={priority ? 'eager' : 'lazy'}
+          placeholder={blurDataUrl ? 'blur' : 'empty'}
+          blurDataURL={blurDataUrl}
+          style={style}
+          onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          tabIndex={tabIndex}
+          onKeyDown={onKeyDown}
+          onLoad={() => {
+            setIsLoading(false);
+            onLoad?.();
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          draggable={draggable}
+        />
+      </div>
+    );
+  }
+
+  // For S3/Wasabi Images, use direct img tag
+  return (
+    <div className="relative" style={{ aspectRatio: `${widthNum}/${heightNum}` }}>
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
+        </div>
+      )}
+      
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        width={widthNum}
+        height={heightNum}
+        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        style={{
+          objectFit: 'cover',
+          objectPosition: 'center',
+          ...style,
+        }}
+        loading={priority ? 'eager' : 'lazy'}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        tabIndex={tabIndex}
+        onKeyDown={onKeyDown}
+        onLoad={() => {
+          setIsLoading(false);
+          onLoad?.();
+        }}
+        onLoadStart={() => setIsLoading(true)}
+        draggable={draggable}
+        crossOrigin="anonymous"
+      />
+    </div>
+  );
+}

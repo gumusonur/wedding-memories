@@ -1,36 +1,39 @@
 # Wedding Memories Gallery
 
-A modern, accessible wedding photo gallery built with Next.js, Cloudinary, and shadcn/ui. Guests can view and upload photos with real-time gallery updates, full keyboard navigation, and exceptional accessibility support.
+A modern, accessible wedding memories gallery supporting **both photos and videos** with multi-storage backend support. Built with Next.js, supports Cloudinary and S3/Wasabi storage providers, and features full keyboard navigation and exceptional accessibility.
 
 🌐 **[Live Demo](https://wedding.onurgumus.com)**
 
 ## ✨ Features
 
+- **Photo & Video Support** - unified handling for images and videos with optimized loading
+- **Progressive Video Loading** - smart caching, mobile optimization, and smooth playback
 - **Responsive masonry gallery** with 1-4 columns based on screen size
-- **Modal photo viewing** with cached data and keyboard/swipe navigation
+- **Modal viewing** with cached data, keyboard/swipe navigation, and pinch-to-zoom
 - **Multiple file upload** with drag & drop, batch selection, and progress tracking
 - **Real-time gallery updates** automatically refresh after uploads
 - **Guest welcome system** with name collection and persistent storage
-- **Multiple storage providers** - supports Cloudinary and S3/Wasabi with easy switching
-- **Storage abstraction layer** - unified API for different storage backends
-- **Guest isolation mode** - filter photos by guest when enabled in config
-- **Advanced name validation** with real-time feedback and comprehensive rules
-- **Mobile-optimized UX** with improved touch targets and responsive design
+- **Multi-storage backend** - Cloudinary and S3/Wasabi with seamless switching
+- **S3 Proxy Architecture** - CORS-free media serving with request deduplication
+- **Guest isolation mode** - filter media by guest when enabled in config
+- **Advanced validation** with real-time feedback and security-focused rules
+- **Mobile-optimized UX** with touch gestures and responsive design
 - **Full accessibility** (WCAG 2.1 AA, ARIA labels, screen readers)
 - **Dark/light theme** support with system preference detection
 - **Transparent loading screens** that show content behind blur
-- **TypeScript strict mode** with comprehensive validation
+- **TypeScript strict mode** with comprehensive type safety
 
 ## 🛠️ Tech Stack
 
 - **Framework**: Next.js (latest) with App Router & TypeScript
 - **Styling**: Tailwind CSS v4 + shadcn/ui components  
-- **Images**: Cloudinary with optimization and transformations
+- **Media Storage**: Multi-provider (Cloudinary, S3/Wasabi)
+- **Video Handling**: Progressive loading with mobile optimization
 - **State Management**: Zustand with localStorage persistence
 - **UI Components**: Vaul drawers, Framer Motion animations
 - **Icons**: Lucide React icon library
 - **Theme**: next-themes for dark/light mode support
-- **Validation**: Custom security-focused utilities
+- **Validation**: Security-focused with comprehensive input sanitization
 - **Accessibility**: WCAG 2.1 AA compliant
 
 ## 🚀 Quick Start
@@ -77,8 +80,8 @@ CLOUDINARY_FOLDER=wedding
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
-S3_BUCKET=your_bucket_name
-S3_ENDPOINT=https://s3.wasabisys.com  # Optional: for Wasabi or other S3-compatible services
+NEXT_PUBLIC_S3_BUCKET=your_bucket_name
+NEXT_PUBLIC_S3_ENDPOINT=https://s3.wasabisys.com  # Optional: for Wasabi or other S3-compatible services
 ```
 
 **App Configuration (config.ts)**
@@ -97,18 +100,20 @@ export const appConfig = {
 ```
 
 **Storage Providers**
-- **Cloudinary**: Cloud-based image storage with automatic optimization, transformations, and blur placeholders
-- **S3/Wasabi**: Object storage compatible with AWS S3 API via secure proxy, supports Wasabi and AWS S3
+- **Cloudinary**: Cloud-based media storage with automatic optimization, transformations, and blur placeholders for images/videos
+- **S3/Wasabi**: Object storage compatible with AWS S3 API via secure proxy with request deduplication and stream handling
 - **Seamless Switching**: Change providers instantly by updating `storage` config - no code changes required
-- **Smart Image Handling**: Automatic optimization for Cloudinary, proxy-based serving for S3/Wasabi
+- **Smart Media Handling**: Automatic optimization for Cloudinary, proxy-based serving for S3/Wasabi with progressive video loading
 - **Feature Parity**: Download, external links, and all functionality work identically across providers
 
 **S3/Wasabi Proxy Architecture**
-- **Secure Proxy**: `/api/s3-proxy/[...path]` endpoint serves S3 images via server-side AWS SDK
-- **CORS-Free**: Eliminates browser CORS issues by serving images from same origin
+- **Secure Proxy**: `/api/s3-proxy/[...path]` endpoint serves S3 media via server-side AWS SDK
+- **Request Deduplication**: Prevents multiple simultaneous requests for same file with buffer-based caching
+- **CORS-Free**: Eliminates browser CORS issues by serving media from same origin
 - **Permission Independent**: Works with private S3 buckets without public access policies
+- **Stream Handling**: Proper ReadableStream consumption with buffer management
 - **Download Support**: Automatic Content-Disposition headers for file downloads
-- **High Performance**: 1-year cache headers for optimal loading speed
+- **High Performance**: 1-year cache headers with ETag support for optimal loading speed
 - **Error Handling**: Graceful fallbacks and proper HTTP status codes
 
 **Guest Isolation Mode**
@@ -128,10 +133,10 @@ export const appConfig = {
 │   └── loading.tsx        # Global transparent loading UI
 ├── components/            # React components
 │   ├── ui/               # shadcn/ui components (Button, Drawer, etc.)
-│   ├── PhotoGallery.tsx  # Masonry grid with modal integration
-│   ├── StorageAwareImage.tsx # Storage-agnostic image rendering
-│   ├── Upload.tsx        # Photo upload with name validation
-│   ├── CachedModal.tsx   # Modal with photo caching
+│   ├── MediaGallery.tsx  # Masonry grid with modal integration for photos/videos
+│   ├── StorageAwareMedia.tsx # Storage-agnostic media rendering (images/videos)
+│   ├── MediaModal.tsx    # Modal with pinch-to-zoom and gesture support
+│   ├── Upload.tsx        # Media upload with validation and progress tracking
 │   ├── AppLoader.tsx     # Startup loader with couple names
 │   └── WelcomeDialog.tsx # Guest name collection
 ├── store/                # Zustand state management
@@ -142,10 +147,11 @@ export const appConfig = {
 │   ├── S3Service.ts      # S3/Wasabi implementation with proxy support
 │   └── index.ts          # Provider selection and export
 ├── utils/                # Utilities and helpers
-│   ├── types.ts          # TypeScript interfaces
-│   ├── validation.ts     # Input validation utilities
-│   ├── imageUrl.ts       # Storage-agnostic URL generation
-│   ├── imageOptimization.ts # Storage-aware image optimization
+│   ├── types.ts          # TypeScript interfaces for media data
+│   ├── validation.ts     # Input validation utilities with security focus
+│   ├── imageUrl.ts       # Storage-agnostic URL generation (MediaUrlService)
+│   ├── mediaOptimization.ts  # Storage-aware optimization for images and videos
+│   ├── generateBlurPlaceholder.ts # Blur placeholder generation for smooth loading
 │   ├── cloudinary.ts     # Cloudinary API integration
 │   └── testing.ts        # Test utilities and mocks
 ├── config.ts             # App configuration (couple names, features)

@@ -8,50 +8,51 @@
  * - Performance testing utilities
  */
 
-import type { ImageProps, UploadFile, UploadResponse } from './types';
+import type { MediaProps, UploadFile, UploadResponse } from './types';
 
 /**
  * Mock image data factory for testing.
  * Creates realistic test data that matches the production data structure.
  */
-export class MockImageFactory {
+export class MockMediaFactory {
   /**
-   * Creates a mock ImageProps object for testing.
+   * Creates a mock MediaProps object for testing.
    *
    * @param overrides - Properties to override in the mock
-   * @returns Mock ImageProps object
+   * @returns Mock MediaProps object
    */
-  static createMockImage(overrides: Partial<ImageProps> = {}): ImageProps {
-    const defaultImage: ImageProps = {
+  static createMockMedia(overrides: Partial<MediaProps> = {}): MediaProps {
+    const defaultMedia: MediaProps = {
       id: Math.floor(Math.random() * 1000),
       height: '480',
       width: '720',
-      public_id: `test_image_${Date.now()}`,
+      public_id: `test_media_${Date.now()}`,
       format: 'jpg',
+      resource_type: 'image',
       blurDataUrl:
-        'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyatcEfCP8Aeeh6w7ZLGqw0FUnlBzFXfnq5nI/v/9k=',
+        'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyatcEfCP8eeh6w7ZLGqw0FUnlBzFXfnq5nI/v/9k=',
       guestName: 'Test Guest',
       uploadDate: new Date().toISOString(),
     };
 
-    return { ...defaultImage, ...overrides };
+    return { ...defaultMedia, ...overrides };
   }
 
   /**
-   * Creates an array of mock images for testing gallery functionality.
+   * Creates an array of mock media for testing gallery functionality.
    *
-   * @param count - Number of images to create
-   * @param baseOverrides - Base properties to apply to all images
-   * @returns Array of mock ImageProps objects
+   * @param count - Number of media items to create
+   * @param baseOverrides - Base properties to apply to all media items
+   * @returns Array of mock MediaProps objects
    */
-  static createMockImageArray(
+  static createMockMediaArray(
     count: number,
-    baseOverrides: Partial<ImageProps> = {}
-  ): ImageProps[] {
+    baseOverrides: Partial<MediaProps> = {}
+  ): MediaProps[] {
     return Array.from({ length: count }, (_, index) =>
-      this.createMockImage({
+      this.createMockMedia({
         id: index,
-        public_id: `test_image_${index}`,
+        public_id: `test_media_${index}`,
         guestName: `Guest ${index + 1}`,
         ...baseOverrides,
       })
@@ -454,6 +455,6 @@ export class TestAssertions {
 }
 
 // Export commonly used test data
-export const TEST_IMAGES = MockImageFactory.createMockImageArray(5);
+export const TEST_MEDIA = MockMediaFactory.createMockMediaArray(5);
 export const TEST_ENVIRONMENT = TestEnvironment.createMockEnvironment();
-export const TEST_UPLOAD_FILE = MockImageFactory.createMockUploadFile();
+export const TEST_UPLOAD_FILE = MockMediaFactory.createMockUploadFile();

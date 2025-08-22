@@ -1,7 +1,7 @@
 import cloudinary from '../utils/cloudinary';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { StorageService, UploadResult } from './StorageService';
-import type { ImageProps } from '../utils/types';
+import type { MediaProps } from '../utils/types';
 
 /**
  * Cloudinary implementation of the StorageService interface.
@@ -36,7 +36,7 @@ export class CloudinaryService implements StorageService {
       const result = await cloudinary.v2.uploader.upload(dataURI, {
         folder,
         context: guestName ? { guest: guestName } : undefined,
-        resource_type: 'image',
+        resource_type: file.type.startsWith('video/') ? 'video' : 'image',
         quality: 'auto:good',
         fetch_format: 'auto',
       });
@@ -47,6 +47,7 @@ export class CloudinaryService implements StorageService {
         width: result.width,
         height: result.height,
         format: result.format,
+        resource_type: file.type.startsWith('video/') ? 'video' : 'image',
         created_at: result.created_at,
       };
     } catch (error) {
@@ -61,7 +62,7 @@ export class CloudinaryService implements StorageService {
    * @param guestName - Optional guest name to filter photos
    * @returns Promise that resolves to an array of photo data with metadata
    */
-  async list(guestName?: string): Promise<ImageProps[]> {
+  async list(guestName?: string): Promise<MediaProps[]> {
     try {
       // Build search expression based on guest filtering
       let expression = `folder:${this.baseFolder}/*`;
@@ -79,35 +80,42 @@ export class CloudinaryService implements StorageService {
         .execute();
 
       // Transform to ImageProps format
-      const transformedImages: ImageProps[] = searchResults.resources.map(
+      const transformedMedia: MediaProps[] = searchResults.resources.map(
         (resource: any, index: number) => ({
           id: index,
           height: resource.height?.toString() || '480',
           width: resource.width?.toString() || '720',
           public_id: resource.public_id,
           format: resource.format,
+          resource_type: resource.resource_type, // Add resource_type
           guestName: resource.context?.guest || guestName || 'Unknown Guest',
           uploadDate: resource.created_at,
         })
       );
 
       // Generate blur placeholders
-      const blurPlaceholderPromises = transformedImages.map((image) => {
-        // Find the original resource for this image
-        const originalResource = searchResults.resources.find((resource: any) => 
-          resource.public_id === image.public_id
-        );
-        return generateBlurPlaceholder(originalResource);
+      const blurPlaceholderPromises = transformedMedia.map((mediaItem) => {
+        // Only generate blur for images
+        if (mediaItem.resource_type === 'image') {
+          // Find the original resource for this image
+          const originalResource = searchResults.resources.find((resource: any) => 
+            resource.public_id === mediaItem.public_id
+          );
+          return generateBlurPlaceholder(originalResource);
+        }
+        return Promise.resolve(undefined); // Return undefined for videos
       });
 
       const blurPlaceholders = await Promise.all(blurPlaceholderPromises);
 
       // Add blur placeholders to images
-      transformedImages.forEach((image, index) => {
-        image.blurDataUrl = blurPlaceholders[index];
+      transformedMedia.forEach((mediaItem, index) => {
+        if (mediaItem.resource_type === 'image') {
+          mediaItem.blurDataUrl = blurPlaceholders[index];
+        }
       });
 
-      return transformedImages;
+      return transformedMedia;
     } catch (error) {
       console.error('Failed to list photos from Cloudinary:', error);
       throw new Error('Failed to retrieve photos from Cloudinary');

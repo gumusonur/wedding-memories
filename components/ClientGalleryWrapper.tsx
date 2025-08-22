@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { appConfig } from '../config';
 import { Upload } from './Upload';
 import { ModeToggle } from './ModeToggle';
-import { useGuestName, usePhotoModalOpen } from '../store/useAppStore';
+import { useGuestName, useMediaModalOpen } from '../store/useAppStore';
 import { WelcomeDialog } from './WelcomeDialog';
 
 interface ClientGalleryWrapperProps {
@@ -15,11 +15,11 @@ interface ClientGalleryWrapperProps {
 export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
   // Zustand store hooks
   const guestName = useGuestName();
-  const isPhotoModalOpen = usePhotoModalOpen();
+  const isMediaModalOpen = useMediaModalOpen();
 
   const searchParams = useSearchParams();
   const photoId = searchParams.get('photoId');
-  const isModalOpen = !!photoId || isPhotoModalOpen;
+  const isModalOpen = !!photoId || isMediaModalOpen;
 
   return (
     <>

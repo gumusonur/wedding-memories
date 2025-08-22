@@ -1,8 +1,8 @@
-import type { ImageProps } from './types';
+import type { MediaProps } from './types';
 
-const cache = new Map<ImageProps, string>();
+const cache = new Map<MediaProps, string>();
 
-export default async function getBase64ImageUrl(image: ImageProps): Promise<string> {
+export default async function getBase64ImageUrl(image: MediaProps): Promise<string> {
   let url = cache.get(image);
   if (url) {
     return url;

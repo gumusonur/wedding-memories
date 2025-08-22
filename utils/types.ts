@@ -1,39 +1,41 @@
 /**
- * Core image data structure for the wedding gallery application.
- * Represents a photo with metadata from Cloudinary and guest information.
+ * Core media data structure for the wedding gallery application.
+ * Represents a photo or video with metadata from the storage provider and guest information.
  */
-export interface ImageProps {
-  /** Unique identifier for the image in the gallery */
+export interface MediaProps {
+  /** Unique identifier for the media in the gallery */
   id: number;
-  /** Image height in pixels */
+  /** Media height in pixels */
   height: string;
-  /** Image width in pixels */
+  /** Media width in pixels */
   width: string;
-  /** Cloudinary public ID for the image */
+  /** Cloudinary public ID for the media */
   public_id: string;
-  /** Image file format (jpg, png, etc.) */
+  /** Media file format (jpg, mp4, etc.) */
   format: string;
-  /** Base64 blur placeholder for loading states */
+  /** Type of media resource */
+  resource_type: 'image' | 'video';
+  /** Base64 blur placeholder for loading states (images only) */
   blurDataUrl?: string;
-  /** Name of the guest who uploaded the photo */
+  /** Name of the guest who uploaded the media */
   guestName?: string;
-  /** ISO date string when the photo was uploaded */
+  /** ISO date string when the media was uploaded */
   uploadDate?: string;
 }
 
 /**
- * Props for the shared modal component used for photo viewing.
- * Handles navigation between photos and modal state management.
+ * Props for the shared modal component used for media viewing.
+ * Handles navigation between media items and modal state management.
  */
 export interface SharedModalProps {
-  /** Current photo index in the images array */
+  /** Current media index in the items array */
   index: number;
-  /** Array of all available images */
-  images?: ImageProps[];
-  /** Currently displayed photo data */
-  currentPhoto?: ImageProps;
-  /** Function to change the displayed photo by ID */
-  changePhotoId: (newPhotoId: number) => void;
+  /** Array of all available media items */
+  items?: MediaProps[];
+  /** Currently displayed media data */
+  currentItem?: MediaProps;
+  /** Function to change the displayed media by ID */
+  changeItemId: (newItemId: number) => void;
   /** Function to close the modal */
   closeModal: () => void;
   /** Whether navigation controls should be shown */
@@ -113,3 +115,26 @@ export interface ApiErrorResponse {
  * Standard API response wrapper.
  */
 export type ApiResponse<T> = T | ApiErrorResponse;
+
+
+/**
+ * Props for the guest name input component.
+ */
+export interface GuestNameInputProps {
+  /** Whether the input is disabled */
+  disabled?: boolean;
+  /** Callback when guest name is submitted */
+  onNameSubmit: (name: string) => void;
+}
+
+/**
+ * Props for the welcome dialog component.
+ */
+export interface WelcomeDialogProps {
+  /** Whether the dialog is open */
+  isOpen: boolean;
+  /** Callback when the dialog is closed */
+  onClose: () => void;
+  /** Callback when guest name is submitted */
+  onNameSubmit: (name: string) => void;
+}

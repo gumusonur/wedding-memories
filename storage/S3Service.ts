@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { StorageService, UploadResult } from './StorageService';
-import type { ImageProps } from '../utils/types';
+import type { MediaProps } from '../utils/types';
 
 /**
  * S3/Wasabi implementation of the StorageService interface.
@@ -85,10 +85,11 @@ export class S3Service implements StorageService {
       const fullUrl = this.getPublicUrl(key);
       return {
         url: fullUrl,
-        public_id: fullUrl, // Use full URL as public_id for S3
+        public_id: key, // Use S3 key as public_id, not full URL
         width: 720, // Default width for S3 images
         height: 480, // Default height for S3 images
         format: fileExtension,
+        resource_type: file.type.startsWith('video/') ? 'video' : 'image',
         created_at: new Date().toISOString(),
       };
     } catch (error) {
@@ -103,7 +104,7 @@ export class S3Service implements StorageService {
    * @param guestName - Optional guest name to filter photos
    * @returns Promise that resolves to an array of photo data with metadata
    */
-  async list(guestName?: string): Promise<ImageProps[]> {
+  async list(guestName?: string): Promise<MediaProps[]> {
     try {
       // Determine prefix for listing
       const prefix = guestName 
@@ -119,8 +120,8 @@ export class S3Service implements StorageService {
 
       const response = await this.s3Client.send(command);
 
-      // Transform S3 objects to ImageProps format
-      const images: ImageProps[] = [];
+      // Transform S3 objects to MediaProps format
+      const mediaItems: MediaProps[] = [];
       if (response.Contents) {
         response.Contents.forEach((object, index) => {
           if (object.Key) {
@@ -128,15 +129,24 @@ export class S3Service implements StorageService {
             const pathParts = object.Key.split('/');
             const extractedGuestName = pathParts.length > 2 ? pathParts[1] : 'Unknown Guest';
             
-            // Extract filename without extension for public_id
+            // Extract filename and format
             const filename = pathParts[pathParts.length - 1];
+            const format = filename.includes('.') ? filename.split('.').pop() || '' : 'jpg'; // Default to jpg if no extension
+            const resourceType = (format: string): 'image' | 'video' => {
+              const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+              const videoFormats = ['mp4', 'mov', 'avi', 'webm'];
+              if (imageFormats.includes(format.toLowerCase())) return 'image';
+              if (videoFormats.includes(format.toLowerCase())) return 'video';
+              return 'image'; // Default to image if unknown
+            };
 
-            images.push({
+            mediaItems.push({
               id: index,
-              height: '480', // Default height for S3 images
-              width: '720',  // Default width for S3 images
-              public_id: this.getPublicUrl(object.Key), // Use full URL as public_id for S3
-              format: filename.split('.').pop() || 'jpg',
+              height: '480', // Default height for S3 media
+              width: '720',  // Default width for S3 media
+              public_id: object.Key, // Use S3 key as public_id, not full URL
+              format: format,
+              resource_type: resourceType(format),
               guestName: guestName || extractedGuestName,
               uploadDate: object.LastModified?.toISOString(),
               // Note: S3 doesn't generate blur placeholders automatically
@@ -147,16 +157,16 @@ export class S3Service implements StorageService {
       }
 
       // Sort by upload date in descending order
-      images.sort((a, b) => {
+      mediaItems.sort((a, b) => {
         const dateA = new Date(a.uploadDate || 0).getTime();
         const dateB = new Date(b.uploadDate || 0).getTime();
         return dateB - dateA;
       });
 
-      return images;
+      return mediaItems;
     } catch (error) {
-      console.error('Failed to list photos from S3:', error);
-      throw new Error('Failed to retrieve photos from S3 storage');
+      console.error('Failed to list media from S3:', error);
+      throw new Error('Failed to retrieve media from S3 storage');
     }
   }
 

@@ -1,22 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ImageProps } from '../utils/types';
+import type { MediaProps } from '../utils/types';
 
 interface AppState {
   // Guest management
   guestName: string;
   setGuestName: (name: string) => void;
 
-  // Photo gallery state
-  photos: ImageProps[];
-  setPhotos: (photos: ImageProps[]) => void;
-  addPhoto: (photo: ImageProps) => void;
+  // Media gallery state
+  media: MediaProps[];
+  setMedia: (media: MediaProps[]) => void;
+  addMedia: (media: MediaProps) => void;
 
   // Modal state
-  isPhotoModalOpen: boolean;
-  selectedPhotoIndex: number;
-  openPhotoModal: (index: number) => void;
-  closePhotoModal: () => void;
+  isMediaModalOpen: boolean;
+  selectedMediaIndex: number;
+  openMediaModal: (index: number) => void;
+  closeMediaModal: () => void;
 
   // Upload modal state
   isUploadModalOpen: boolean;
@@ -25,9 +25,10 @@ interface AppState {
 
   // Gallery refresh state
   lastRefreshTime: Date;
-  isLoadingPhotos: boolean;
-  setIsLoadingPhotos: (loading: boolean) => void;
-  refreshPhotos: () => void;
+  isLoadingMedia: boolean;
+  setIsLoadingMedia: (loading: boolean) => void;
+  refreshMedia: () => void;
+
 
   // Internal state
   _hasHydrated: boolean;
@@ -40,25 +41,25 @@ export const useAppStore = create<AppState>()(
       guestName: '',
       setGuestName: (name: string) => set({ guestName: name }),
 
-      // Photo gallery state
-      photos: [],
-      setPhotos: (photos: ImageProps[]) => set({ photos }),
-      addPhoto: (photo: ImageProps) =>
+      // Media gallery state
+      media: [],
+      setMedia: (media: MediaProps[]) => set({ media }),
+      addMedia: (mediaItem: MediaProps) =>
         set((state) => ({
-          photos: [photo, ...state.photos],
+          media: [mediaItem, ...state.media],
         })),
 
       // Modal state
-      isPhotoModalOpen: false,
-      selectedPhotoIndex: 0,
-      openPhotoModal: (index: number) =>
+      isMediaModalOpen: false,
+      selectedMediaIndex: 0,
+      openMediaModal: (index: number) =>
         set({
-          isPhotoModalOpen: true,
-          selectedPhotoIndex: index,
+          isMediaModalOpen: true,
+          selectedMediaIndex: index,
         }),
-      closePhotoModal: () =>
+      closeMediaModal: () =>
         set({
-          isPhotoModalOpen: false,
+          isMediaModalOpen: false,
         }),
 
       // Upload modal state
@@ -68,9 +69,10 @@ export const useAppStore = create<AppState>()(
 
       // Gallery refresh state
       lastRefreshTime: new Date(),
-      isLoadingPhotos: false,
-      setIsLoadingPhotos: (loading: boolean) => set({ isLoadingPhotos: loading }),
-      refreshPhotos: () => set({ lastRefreshTime: new Date() }),
+      isLoadingMedia: false,
+      setIsLoadingMedia: (loading: boolean) => set({ isLoadingMedia: loading }),
+      refreshMedia: () => set({ lastRefreshTime: new Date() }),
+
 
       // Internal state
       _hasHydrated: false,
@@ -94,22 +96,23 @@ export const useAppStore = create<AppState>()(
 export const useGuestName = () => useAppStore((state) => state.guestName);
 export const useSetGuestName = () => useAppStore((state) => state.setGuestName);
 
-export const usePhotos = () => useAppStore((state) => state.photos);
-export const useSetPhotos = () => useAppStore((state) => state.setPhotos);
-export const useAddPhoto = () => useAppStore((state) => state.addPhoto);
+export const useMedia = () => useAppStore((state) => state.media);
+export const useSetMedia = () => useAppStore((state) => state.setMedia);
+export const useAddMedia = () => useAppStore((state) => state.addMedia);
 
 // Individual selectors to avoid object creation issues
-export const usePhotoModalOpen = () => useAppStore((state) => state.isPhotoModalOpen);
-export const useSelectedPhotoIndex = () => useAppStore((state) => state.selectedPhotoIndex);
-export const useOpenPhotoModal = () => useAppStore((state) => state.openPhotoModal);
-export const useClosePhotoModal = () => useAppStore((state) => state.closePhotoModal);
+export const useMediaModalOpen = () => useAppStore((state) => state.isMediaModalOpen);
+export const useSelectedMediaIndex = () => useAppStore((state) => state.selectedMediaIndex);
+export const useOpenMediaModal = () => useAppStore((state) => state.openMediaModal);
+export const useCloseMediaModal = () => useAppStore((state) => state.closeMediaModal);
 
 export const useUploadModalOpen = () => useAppStore((state) => state.isUploadModalOpen);
 export const useOpenUploadModal = () => useAppStore((state) => state.openUploadModal);
 export const useCloseUploadModal = () => useAppStore((state) => state.closeUploadModal);
 
-export const useIsLoadingPhotos = () => useAppStore((state) => state.isLoadingPhotos);
+export const useIsLoadingMedia = () => useAppStore((state) => state.isLoadingMedia);
 export const useLastRefreshTime = () => useAppStore((state) => state.lastRefreshTime);
-export const useSetIsLoadingPhotos = () => useAppStore((state) => state.setIsLoadingPhotos);
-export const useRefreshPhotos = () => useAppStore((state) => state.refreshPhotos);
+export const useSetIsLoadingMedia = () => useAppStore((state) => state.setIsLoadingMedia);
+export const useRefreshMedia = () => useAppStore((state) => state.refreshMedia);
 export const useHasHydrated = () => useAppStore((state) => state._hasHydrated);
+

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { appConfig, StorageProvider } from '../../../config';
 import { storage } from '../../../storage';
 import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rateLimit';
 import type { ApiErrorResponse } from '../../../utils/types';
@@ -30,8 +31,18 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
     throw new ValidationError('Valid file is required', 'file');
   }
 
-  if (!file.type.startsWith('image/')) {
-    throw new ValidationError('File must be a valid image format', 'file');
+  const isS3 = appConfig.storage === StorageProvider.S3;
+  const isValidImage = file.type.startsWith('image/');
+  const isValidVideo = file.type.startsWith('video/');
+
+  if (isS3) {
+    if (!isValidImage && !isValidVideo) {
+      throw new ValidationError('File must be a valid image or video format', 'file');
+    }
+  } else {
+    if (!isValidImage) {
+      throw new ValidationError('File must be a valid image format', 'file');
+    }
   }
 
   const trimmedGuestName = guestName?.trim() || '';
@@ -48,7 +59,7 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
 
 
 /**
- * Handles photo upload requests using the configured storage provider.
+ * Handles media upload requests using the configured storage provider.
  *
  * @param request - The incoming request containing file and guest name
  * @returns JSON response with upload URL or error
@@ -62,7 +73,7 @@ export async function POST(
     if (!rateLimitResult.success) {
       const errorResponse: ApiErrorResponse = {
         error: 'Too many uploads',
-        details: rateLimitResult.message || 'Please wait before uploading more photos.',
+        details: rateLimitResult.message || 'Please wait before uploading more files.',
       };
       
       return NextResponse.json(errorResponse, {
@@ -80,14 +91,14 @@ export async function POST(
     // Upload using the configured storage provider
     const uploadResult = await storage.upload(file, guestName);
 
-    // Return photo metadata for immediate UI update
-    const photoData = {
+    // Return media metadata for immediate UI update
+    const mediaData = {
       ...uploadResult,
       guestName,
       uploadDate: uploadResult.created_at,
     };
 
-    return NextResponse.json(photoData, { 
+    return NextResponse.json(mediaData, { 
       status: 201,
       headers: createRateLimitHeaders(rateLimitResult),
     });
@@ -103,7 +114,7 @@ export async function POST(
     }
 
     const errorResponse: ApiErrorResponse = {
-      error: 'Failed to upload photo',
+      error: 'Failed to upload file',
       details: 'Please try again or contact support if the problem persists',
     };
     return NextResponse.json(errorResponse, { status: 500 });

@@ -14,7 +14,6 @@ import { ValidationError } from './errors';
  */
 export const SUPPORTED_IMAGE_TYPES = [
   'image/jpeg',
-  'image/jpg',
   'image/png',
   'image/gif',
   'image/webp',
@@ -24,6 +23,22 @@ export const SUPPORTED_IMAGE_TYPES = [
  * Supported image file extensions (fallback for Safari compatibility).
  */
 export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
+
+/**
+ * Supported video MIME types for file validation (S3/Wasabi only).
+ */
+export const SUPPORTED_VIDEO_TYPES = [
+  'video/mp4',
+  'video/mov',
+  'video/quicktime',
+  'video/avi',
+  'video/webm',
+] as const;
+
+/**
+ * Supported video file extensions (S3/Wasabi only).
+ */
+export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.webm'] as const;
 
 /**
  * Maximum file size for uploads (10MB).
@@ -46,19 +61,21 @@ export const MIN_GUEST_NAME_LENGTH = 2;
 export const MAX_FILES_PER_UPLOAD = 20;
 
 /**
- * Validates if a file is a supported image format.
+ * Validates if a file is a supported media format (image or video for S3).
  *
  * @param file - File to validate
- * @returns True if file is a valid image
- * @throws {ValidationError} If file is not a valid image
+ * @param allowVideos - Whether to allow video files (true for S3/Wasabi)
+ * @param enforceFileSize - Whether to enforce file size limits (false for S3/Wasabi)
+ * @returns True if file is valid
+ * @throws {ValidationError} If file is not valid
  */
-export function validateImageFile(file: File): boolean {
+export function validateMediaFile(file: File, allowVideos = false, enforceFileSize = true): boolean {
   if (!file) {
     throw new ValidationError('File is required', 'file');
   }
 
-  // Check file size
-  if (file.size > MAX_FILE_SIZE) {
+  // Check file size only if enforced (Cloudinary has limits, S3/Wasabi doesn't)
+  if (enforceFileSize && file.size > MAX_FILE_SIZE) {
     const sizeMB = Math.round(file.size / (1024 * 1024));
     const maxSizeMB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
     throw new ValidationError(
@@ -68,19 +85,53 @@ export function validateImageFile(file: File): boolean {
   }
 
   // Check MIME type first
-  if (file.type && SUPPORTED_IMAGE_TYPES.includes(file.type as any)) {
-    return true;
+  if (file.type) {
+    const lowerType = file.type.toLowerCase();
+    
+    // Check image types
+    if (SUPPORTED_IMAGE_TYPES.includes(lowerType as any)) {
+      return true;
+    }
+    
+    // Check video types if allowed
+    if (allowVideos && SUPPORTED_VIDEO_TYPES.includes(lowerType as any)) {
+      return true;
+    }
   }
 
   // Fallback: check file extension for Safari compatibility
   const fileName = file.name?.toLowerCase() || '';
-  const hasValidExtension = SUPPORTED_IMAGE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
-
-  if (!hasValidExtension) {
-    throw new ValidationError('File must be a valid image format (JPG, PNG, GIF, or WebP)', 'file');
+  
+  // Check image extensions
+  const hasValidImageExtension = SUPPORTED_IMAGE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+  if (hasValidImageExtension) {
+    return true;
+  }
+  
+  // Check video extensions if allowed
+  if (allowVideos) {
+    const hasValidVideoExtension = SUPPORTED_VIDEO_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+    if (hasValidVideoExtension) {
+      return true;
+    }
   }
 
-  return true;
+  const supportedFormats = allowVideos 
+    ? 'JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM'
+    : 'JPG, JPEG, PNG, GIF, WebP';
+    
+  throw new ValidationError(`File must be a valid format (${supportedFormats})`, 'file');
+}
+
+/**
+ * Validates if a file is a supported image format (legacy function for backward compatibility).
+ *
+ * @param file - File to validate
+ * @returns True if file is a valid image
+ * @throws {ValidationError} If file is not a valid image
+ */
+export function validateImageFile(file: File): boolean {
+  return validateMediaFile(file, false, true);
 }
 
 /**

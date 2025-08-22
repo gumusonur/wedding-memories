@@ -1,12 +1,24 @@
 /**
- * S3 Image Proxy API Route
+ * S3 Media Proxy API Route
  * 
- * Proxies S3/Wasabi images through our server to bypass permission issues.
+ * Proxies S3/Wasabi media through our server to bypass permission issues.
  * This approach works regardless of bucket permissions or CORS configuration.
+ * Includes request deduplication and proper caching for performance.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+
+// Request deduplication cache to prevent multiple simultaneous requests for same file
+// Store the buffer data instead of the response to avoid stream consumption issues
+interface CachedResponse {
+  buffer: Buffer;
+  contentType: string;
+  status: number;
+  headers: Record<string, string>;
+}
+
+const ongoingRequests = new Map<string, Promise<CachedResponse>>();
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -39,69 +51,133 @@ export async function GET(
     // Check if this is a download request
     const { searchParams } = new URL(request.url);
     const isDownload = searchParams.get('download') === 'true';
-
-    // Fetch the object from S3/Wasabi using AWS SDK
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: objectKey,
-    });
-
-    const response = await s3Client.send(command);
-
-    if (!response.Body) {
-      return NextResponse.json(
-        { error: 'Object not found' },
-        { status: 404 }
-      );
+    
+    // Create unique key for request deduplication
+    const requestKey = `${objectKey}:${isDownload}`;
+    
+    // Check for conditional requests (If-None-Match)
+    const ifNoneMatch = request.headers.get('if-none-match');
+    const expectedETag = `"${objectKey}-cached"`;
+    
+    if (ifNoneMatch === expectedETag && !isDownload) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'ETag': expectedETag,
+        }
+      });
+    }
+    
+    // Check if there's already an ongoing request for this file
+    if (ongoingRequests.has(requestKey)) {
+      const cachedData = await ongoingRequests.get(requestKey)!;
+      
+      // Create a new response with the cached data
+      return new NextResponse(cachedData.buffer as BodyInit, {
+        status: cachedData.status,
+        headers: cachedData.headers,
+      });
     }
 
-    // Convert the stream to buffer
-    const chunks = [];
-    for await (const chunk of response.Body as any) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
+    // Create the request promise and store it for deduplication
+    const requestPromise = (async () => {
+      try {
+        // Fetch the object from S3/Wasabi using AWS SDK
+        const command = new GetObjectCommand({
+          Bucket: bucket,
+          Key: objectKey,
+        });
 
-    // Determine content type
-    const contentType = response.ContentType || 'image/jpeg';
+        const response = await s3Client.send(command);
 
-    // Prepare headers
-    const headers: Record<string, string> = {
-      'Content-Type': contentType,
-      'Content-Length': buffer.length.toString(),
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
+        if (!response.Body) {
+          throw new Error('Object not found');
+        }
 
-    // Add download headers if requested
-    if (isDownload) {
-      const filename = objectKey.split('/').pop() || 'image.jpg';
-      headers['Content-Disposition'] = `attachment; filename="${filename}"`;
-      headers['Cache-Control'] = 'no-cache';
-    } else {
-      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
-    }
+        // Convert the stream to buffer
+        const chunks = [];
+        for await (const chunk of response.Body as any) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
 
-    // Return the image with proper headers
-    return new NextResponse(buffer, {
-      status: 200,
-      headers,
+        // Determine content type
+        const contentType = response.ContentType || 'application/octet-stream';
+
+        // Prepare headers with proper caching
+        const headers: Record<string, string> = {
+          'Content-Type': contentType,
+          'Content-Length': buffer.length.toString(),
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Content-Type, Range',
+          'Accept-Ranges': 'bytes', // Enable range requests for video streaming
+        };
+
+        // Add download headers if requested
+        if (isDownload) {
+          const filename = objectKey.split('/').pop() || 'media';
+          headers['Content-Disposition'] = `attachment; filename="${filename}"`;
+          headers['Cache-Control'] = 'no-cache';
+        } else {
+          // Aggressive caching for media files with better cache headers
+          headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+          headers['ETag'] = `"${objectKey}-cached"`;
+          headers['Last-Modified'] = new Date().toUTCString();
+          // Add explicit cache instructions for browsers
+          headers['Pragma'] = 'cache';
+          headers['Expires'] = new Date(Date.now() + 31536000000).toUTCString(); // 1 year
+        }
+
+        // Return data object instead of NextResponse
+        return {
+          buffer,
+          contentType,
+          status: 200,
+          headers,
+        };
+      } finally {
+        // Clean up the request from cache after completion
+        ongoingRequests.delete(requestKey);
+      }
+    })();
+
+    // Store the promise for deduplication
+    ongoingRequests.set(requestKey, requestPromise);
+    
+    // Wait for the data and create a response
+    const data = await requestPromise;
+    return new NextResponse(data.buffer as BodyInit, {
+      status: data.status,
+      headers: data.headers,
     });
 
   } catch (error: any) {
+    // Clean up the request from cache on error
+    try {
+      const resolvedParams = await params;
+      const objectKey = resolvedParams.path.join('/');
+      const { searchParams } = new URL(request.url);
+      const isDownload = searchParams.get('download') === 'true';
+      const requestKey = `${objectKey}:${isDownload}`;
+      ongoingRequests.delete(requestKey);
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+    
     console.error('S3 proxy error:', error);
     
     // Handle specific S3 errors
-    if (error.name === 'NoSuchKey') {
+    if (error.name === 'NoSuchKey' || error.message?.includes('not found')) {
       return NextResponse.json(
-        { error: 'Image not found' },
+        { error: 'Media not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch image' },
+      { error: 'Failed to fetch media' },
       { status: 500 }
     );
   }
@@ -114,7 +190,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Range',
     },
   });
 }

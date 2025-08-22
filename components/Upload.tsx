@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { appConfig } from '../config';
+import { appConfig, StorageProvider } from '../config';
 
 import { Button } from './ui/button';
-import { useGuestName, useSetGuestName, useAddPhoto } from '../store/useAppStore';
+import { useGuestName, useSetGuestName, useAddMedia } from '../store/useAppStore';
 import {
   Drawer,
   DrawerClose,
@@ -17,7 +17,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { Input } from './ui/input';
-import { validateGuestNameForUI, validateGuestName } from '../utils/validation';
+import { validateGuestNameForUI, validateGuestName, validateMediaFile } from '../utils/validation';
 import { Progress } from './ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -54,7 +54,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
-import type { UploadFile, ImageProps } from '../utils/types';
+import type { UploadFile, MediaProps } from '../utils/types';
 import { formatFileSize, getCompressionInfo } from '../utils/clientUtils';
 
 interface UploadProps {
@@ -65,7 +65,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   // Zustand store hooks
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
-  const addPhoto = useAddPhoto();
+  const addMedia = useAddMedia();
 
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -108,19 +108,12 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const isValidImageFile = (file: File): boolean => {
+  const isValidMediaFile = (file: File): boolean => {
     try {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      // Check if using S3/Wasabi storage (allows videos and no file size limit)
+      const isS3Storage = appConfig.storage === StorageProvider.S3;
 
-      // Check MIME type first
-      if (file.type && validTypes.includes(file.type.toLowerCase())) {
-        return true;
-      }
-
-      // Fallback: check file extension for Safari compatibility
-      const fileName = file.name?.toLowerCase() || '';
-      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-      return validExtensions.some((ext) => fileName.endsWith(ext));
+      return validateMediaFile(file, isS3Storage, !isS3Storage);
     } catch (error) {
       console.warn('File validation error:', error);
       return false;
@@ -213,12 +206,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const handleFileSelect = async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
+    const isS3Storage = appConfig.storage === StorageProvider.S3;
+
     const validFiles = Array.from(selectedFiles).filter((file) => {
-      if (!isValidImageFile(file)) {
+      if (!isValidMediaFile(file)) {
+        const supportedFormats = isS3Storage
+          ? 'JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM'
+          : 'JPG, JPEG, PNG, GIF, WebP';
+
         toast({
           variant: 'destructive',
           title: 'Invalid file type',
-          description: `${file.name} is not a supported image format. Please select JPG, PNG, GIF, or WebP files.`,
+          description: `${file.name} is not a supported format. Please select ${supportedFormats} files.`,
         });
         return false;
       }
@@ -269,8 +268,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     if (duplicateFiles.length > 0) {
       toast({
         variant: 'destructive',
-        title: 'Duplicate photos detected',
-        description: `${duplicateFiles.length} photo${duplicateFiles.length > 1 ? 's' : ''} already selected: ${duplicateFiles.slice(0, 2).join(', ')}${duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : ''}`,
+        title: 'Duplicate files detected',
+        description: `${duplicateFiles.length} file${duplicateFiles.length > 1 ? 's' : ''} already selected: ${duplicateFiles.slice(0, 2).join(', ')}${duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : ''}`,
       });
     }
 
@@ -279,13 +278,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
       if (duplicateFiles.length === 0) {
         toast({
-          title: 'Photos added',
-          description: `${newFiles.length} photo${newFiles.length > 1 ? 's' : ''} ready to add`,
+          title: 'Files added',
+          description: `${newFiles.length} file${newFiles.length > 1 ? 's' : ''} ready to add`,
         });
       } else {
         toast({
-          title: 'New photos added',
-          description: `${newFiles.length} new photo${newFiles.length > 1 ? 's' : ''} added (${duplicateFiles.length} duplicate${duplicateFiles.length > 1 ? 's' : ''} skipped)`,
+          title: 'New files added',
+          description: `${newFiles.length} new file${newFiles.length > 1 ? 's' : ''} added (${duplicateFiles.length} duplicate${duplicateFiles.length > 1 ? 's' : ''} skipped)`,
         });
       }
     }
@@ -339,8 +338,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setIsSelectionMode(false);
 
     toast({
-      title: 'Photos removed',
-      description: `${selectedFiles.size} photo${selectedFiles.size > 1 ? 's' : ''} removed from the list.`,
+      title: 'Files removed',
+      description: `${selectedFiles.size} file${selectedFiles.size > 1 ? 's' : ''} removed from the list.`,
     });
   };
 
@@ -370,36 +369,35 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         body: formData,
       });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (res.ok) {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f
-            )
-          );
+      if (res.ok) {
+        setFiles((prev) =>
+          prev.map((f) => (f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f))
+        );
 
-          // Add photo directly to the UI for immediate feedback
-          const newPhoto: ImageProps = {
-            id: Date.now(), // Generate a unique numeric ID
-            public_id: data.public_id || data.url,
-            format: data.format,
-            blurDataUrl: '', // Will be generated on next page load
-            guestName: data.guestName || guestName,
-            uploadDate: data.uploadDate || data.created_at,
-            height: data.height?.toString() || '480',
-            width: data.width?.toString() || '720',
-          };
+        // Add photo directly to the UI for immediate feedback
+        const newMedia: MediaProps = {
+          id: Date.now(), // Generate a unique numeric ID
+          public_id: data.public_id || data.url,
+          format: data.format,
+          resource_type: data.resource_type,
+          blurDataUrl: '', // Will be generated on next page load
+          guestName: data.guestName || guestName,
+          uploadDate: data.uploadDate || data.created_at,
+          height: data.height?.toString() || '480',
+          width: data.width?.toString() || '720',
+        };
 
-          addPhoto(newPhoto);
+        addMedia(newMedia);
 
-          toast({
-            title: 'Photo added successfully!',
-            description: `${uploadFile.file.name} has been added to the gallery.`,
-          });
-        } else {
-          throw new Error(data.error || 'Upload failed');
-        }
+        toast({
+          title: 'Media added successfully!',
+          description: `${uploadFile.file.name} has been added to the gallery.`,
+        });
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
     } catch (error) {
       setFiles((prev) =>
         prev.map((f) =>
@@ -414,7 +412,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       );
       toast({
         variant: 'destructive',
-        title: 'Failed to add photo',
+        title: 'Failed to add media',
         description: `Failed to add ${uploadFile.file.name}`,
       });
     }
@@ -444,7 +442,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const handleNameChange = async () => {
     const rawValue = currentNameValue;
     const nameValue = rawValue.trim();
-    
+
     // Final validation before submitting
     const error = validateName(rawValue);
     if (error) {
@@ -454,13 +452,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
     setIsUpdatingName(true);
     setNameError(null);
-    
+
     // Add a small delay to show loading state (simulates processing)
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     // Use validated and sanitized name
     const sanitizedName = validateGuestName(rawValue);
-    
+
     setGuestName(sanitizedName);
     setIsEditingName(false);
     setIsUpdatingName(false);
@@ -500,7 +498,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const allPendingSelected =
     pendingFiles.length > 0 && selectedPendingFiles.length === pendingFiles.length;
 
-
   // Shared content component for both Dialog and Drawer
   const UploadContent = () => (
     <div className="grid gap-4 p-4 overflow-auto max-h-[60vh] lg:max-h-[70vh]">
@@ -509,11 +506,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
           <div className="flex items-center justify-center gap-2 text-green-700 font-medium mb-2">
             <Check className="h-5 w-5" />
-            Photos Successfully Added!
+            Files Successfully Added!
           </div>
           <p className="text-sm text-green-600">
-            {successCount} photo{successCount !== 1 ? 's' : ''} have been added to the wedding gallery.
-            Use the &ldquo;View Gallery&rdquo; button below to see your photos.
+            {successCount} file{successCount !== 1 ? 's' : ''} have been added to the wedding
+            gallery. Use the &ldquo;View Gallery&rdquo; button below to see your files.
           </p>
         </div>
       )}
@@ -526,7 +523,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            accept={
+              appConfig.storage === StorageProvider.S3
+                ? 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mov,video/quicktime,video/avi,video/webm,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm'
+                : 'image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp'
+            }
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
             key={files.length} // Reset input when files change
@@ -544,7 +545,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             <input
               type="file"
               multiple
-              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              accept={
+                appConfig.storage === StorageProvider.S3
+                  ? 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mov,video/quicktime,video/avi,video/webm,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm'
+                  : 'image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp'
+              }
               onChange={(e) => handleFileSelect(e.target.files)}
               className={cn(
                 'absolute opacity-0 cursor-pointer z-10',
@@ -559,9 +564,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               <div className="flex flex-col items-center gap-2">
                 <UploadIcon className="h-8 w-8 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Choose photos or drag & drop</p>
+                  <p className="text-sm font-medium">
+                    {appConfig.storage === StorageProvider.S3
+                      ? 'Choose photos/videos or drag & drop'
+                      : 'Choose photos or drag & drop'}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    JPG, PNG, GIF, WebP • Multiple files supported
+                    {appConfig.storage === StorageProvider.S3
+                      ? 'JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM • No size limit'
+                      : 'JPG, JPEG, PNG, GIF, WebP • Multiple files supported'}
                   </p>
                 </div>
               </div>
@@ -619,7 +630,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
                           {selectedFiles.size > 0 && (
                             <div className="text-sm font-medium text-primary text-center xs:text-left">
-                              {selectedFiles.size} photo{selectedFiles.size > 1 ? 's' : ''} selected
+                              {selectedFiles.size} file{selectedFiles.size > 1 ? 's' : ''} selected
                             </div>
                           )}
                         </div>
@@ -661,7 +672,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         className="h-8 flex items-center gap-2 text-sm relative z-20"
                       >
                         <CheckSquare className="h-4 w-4" />
-                        Select Multiple
+                        Select Multiple Files
                       </Button>
                     </div>
                   )}
@@ -776,16 +787,21 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         <div className="text-xs font-medium truncate" title={uploadFile.file.name}>
                           {uploadFile.file.name}
                         </div>
-                        
+
                         {/* File size info */}
                         <div className="text-xs text-muted-foreground truncate">
                           {formatFileSize(uploadFile.file.size)}
                           {(() => {
                             const compressionInfo = getCompressionInfo(uploadFile.file.size);
-                            return compressionInfo.willCompress && (
-                              <span className="text-orange-600 ml-1" title={`Will be compressed by ${compressionInfo.estimatedSizeReduction} to fit 10MB limit`}>
-                                ⚡ -{compressionInfo.estimatedSizeReduction}
-                              </span>
+                            return (
+                              compressionInfo.willCompress && (
+                                <span
+                                  className="text-orange-600 ml-1"
+                                  title={`Will be compressed by ${compressionInfo.estimatedSizeReduction} to fit 10MB limit`}
+                                >
+                                  ⚡ -{compressionInfo.estimatedSizeReduction}
+                                </span>
+                              )
                             );
                           })()}
                         </div>
@@ -833,10 +849,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Photo</AlertDialogTitle>
+            <AlertDialogTitle>Remove File</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this photo from the list? This action cannot be
-              undone.
+              Are you sure you want to remove this file from the list? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -867,7 +882,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                    md:h-12 md:px-6 md:py-3 md:rounded-lg md:gap-2 md:text-sm md:font-medium"
       >
         <Camera className="h-5 w-5 md:h-5 md:w-5" />
-        <span className="hidden sm:inline">Add Photos</span>
+        <span className="hidden sm:inline">Add Files</span>
         <span className="sm:hidden">Add</span>
       </Button>
     );
@@ -878,73 +893,226 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     return (
       <>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <TriggerButton />
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle>Share Wedding Memories</DialogTitle>
-                <DialogDescription>
-                  Select photos to add to {appConfig.brideName} &{' '}
-                  {appConfig.groomName}&apos;s wedding gallery
-                </DialogDescription>
+          <DialogTrigger asChild>
+            <TriggerButton />
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>Share Wedding Memories</DialogTitle>
+                  <DialogDescription>
+                    Select files to add to {appConfig.brideName} & {appConfig.groomName}&apos;s
+                    wedding gallery
+                  </DialogDescription>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Adding as:</span>
+                  <span className="font-medium">{guestName || 'Not set'}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingName(true);
+                    }}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Adding as:</span>
-                <span className="font-medium">{guestName || 'Not set'}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditingName(true);
+            </DialogHeader>
+
+            <UploadContent />
+
+            <DialogFooter className="flex-shrink-0">
+              {hasSuccessfulUploads && pendingCount === 0 ? (
+                // Show "View Gallery" and "Close" when uploads are complete
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button variant="outline" onClick={() => setIsOpen(false)}>
+                    Close
+                  </Button>
+                  <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
+                    View Gallery ({successCount} added)
+                  </Button>
+                </div>
+              ) : (
+                // Show standard upload interface
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button variant="outline" onClick={() => setIsOpen(false)}>
+                    Close
+                  </Button>
+                  <Button
+                    onClick={handleUploadAll}
+                    disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
+                  >
+                    {isUploading
+                      ? `Adding... (${uploadingCount})`
+                      : `Add ${pendingCount} File${pendingCount !== 1 ? 's' : ''}`}
+                  </Button>
+                </div>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Name edit dialog for desktop */}
+        <Dialog
+          open={isEditingName}
+          onOpenChange={(open) => {
+            if (!isUpdatingName) {
+              setIsEditingName(open);
+              if (open) {
+                setCurrentNameValue(guestName || '');
+                setNameError(null);
+              } else {
+                setNameError(null);
+              }
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change Your Name</DialogTitle>
+              <DialogDescription>
+                Update the name that will be associated with your uploaded files.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  ref={nameInputRef}
+                  type="text"
+                  placeholder="Enter your name"
+                  value={currentNameValue}
+                  autoFocus
+                  disabled={isUpdatingName}
+                  onChange={handleNameInput}
+                  onKeyDown={(e) => {
+                    if (isUpdatingName) return;
+
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!nameError) {
+                        handleNameChange();
+                      }
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setIsEditingName(false);
+                    }
                   }}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
+                  className={nameError ? 'border-destructive focus:border-destructive' : ''}
+                />
+                <div className="h-6 flex items-center">
+                  {nameError && (
+                    <p className="text-sm text-destructive flex items-center gap-2">
+                      <span className="w-4 h-4">⚠️</span>
+                      {nameError}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!isUpdatingName) {
+                    setIsEditingName(false);
+                  }
+                }}
+                className="w-full sm:w-auto order-2 sm:order-1"
+                disabled={isUpdatingName}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleNameChange}
+                className="w-full sm:w-auto order-1 sm:order-2"
+                disabled={isUpdatingName || !!nameError}
+              >
+                {isUpdatingName ? 'Updating...' : 'Update Name'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Mobile/Tablet: Use Drawer
+  return (
+    <>
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <DrawerTrigger asChild>
+          <TriggerButton />
+        </DrawerTrigger>
+        <DrawerContent className="max-h-[80vh]">
+          <DrawerHeader>
+            <div className="space-y-2">
+              <DrawerTitle>Share Wedding Memories</DrawerTitle>
+              <DrawerDescription>
+                Select files to add to {appConfig.brideName} & {appConfig.groomName}&apos;s wedding
+                gallery
+              </DrawerDescription>
+              <div
+                className="pt-2 border-t cursor-pointer"
+                onClick={() => {
+                  setIsEditingName(true);
+                }}
+              >
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Adding files as:</span>
+                    <span className="font-medium text-foreground">{guestName || 'Not set'}</span>
+                  </div>
+                  <Edit className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+          </DrawerHeader>
 
           <UploadContent />
 
-          <DialogFooter className="flex-shrink-0">
+          <DrawerFooter>
             {hasSuccessfulUploads && pendingCount === 0 ? (
               // Show "View Gallery" and "Close" when uploads are complete
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
-                  Close
-                </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full">
+                    Close
+                  </Button>
+                </DrawerClose>
                 <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
                   View Gallery ({successCount} added)
                 </Button>
               </div>
             ) : (
               // Show standard upload interface
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
-                  Close
-                </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full">
+                    Close
+                  </Button>
+                </DrawerClose>
                 <Button
                   onClick={handleUploadAll}
                   disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
                 >
                   {isUploading
                     ? `Adding... (${uploadingCount})`
-                    : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
+                    : `Add ${pendingCount} File${pendingCount !== 1 ? 's' : ''}`}
                 </Button>
               </div>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Name edit dialog for desktop */}
-      <Dialog 
-        open={isEditingName} 
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Name edit dialog for mobile */}
+      <Dialog
+        open={isEditingName}
         onOpenChange={(open) => {
           if (!isUpdatingName) {
             setIsEditingName(open);
@@ -976,7 +1144,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 onChange={handleNameInput}
                 onKeyDown={(e) => {
                   if (isUpdatingName) return;
-                  
+
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     if (!nameError) {
@@ -1000,8 +1168,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 if (!isUpdatingName) {
                   setIsEditingName(false);
@@ -1012,7 +1180,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleNameChange}
               className="w-full sm:w-auto order-1 sm:order-2"
               disabled={isUpdatingName || !!nameError}
@@ -1022,159 +1190,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </>
-    );
-  }
-
-  // Mobile/Tablet: Use Drawer
-  return (
-    <>
-      <Drawer open={isOpen} onOpenChange={setIsOpen}>
-      <DrawerTrigger asChild>
-        <TriggerButton />
-      </DrawerTrigger>
-      <DrawerContent className="max-h-[80vh]">
-        <DrawerHeader>
-          <div className="space-y-2">
-            <DrawerTitle>Share Wedding Memories</DrawerTitle>
-            <DrawerDescription>
-              Select photos to add to {appConfig.brideName} &{' '}
-              {appConfig.groomName}&apos;s wedding gallery
-            </DrawerDescription>
-            <div 
-              className="pt-2 border-t cursor-pointer"
-              onClick={() => {
-                setIsEditingName(true);
-              }}
-            >
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Adding photos as:</span>
-                  <span className="font-medium text-foreground">{guestName || 'Not set'}</span>
-                </div>
-                <Edit className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-        </DrawerHeader>
-
-        <UploadContent />
-
-        <DrawerFooter>
-          {hasSuccessfulUploads && pendingCount === 0 ? (
-            // Show "View Gallery" and "Close" when uploads are complete
-            <div className="grid grid-cols-2 gap-2">
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
-              <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
-                View Gallery ({successCount} added)
-              </Button>
-            </div>
-          ) : (
-            // Show standard upload interface
-            <div className="grid grid-cols-2 gap-2">
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
-              <Button
-                onClick={handleUploadAll}
-                disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
-              >
-                {isUploading
-                  ? `Adding... (${uploadingCount})`
-                  : `Add ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
-              </Button>
-            </div>
-          )}
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-    
-    {/* Name edit dialog for mobile */}
-    <Dialog 
-      open={isEditingName} 
-      onOpenChange={(open) => {
-        if (!isUpdatingName) {
-          setIsEditingName(open);
-          if (open) {
-            setCurrentNameValue(guestName || '');
-            setNameError(null);
-          } else {
-            setNameError(null);
-          }
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Change Your Name</DialogTitle>
-          <DialogDescription>
-            Update the name that will be associated with your photos.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Input
-              ref={nameInputRef}
-              type="text"
-              placeholder="Enter your name"
-              value={currentNameValue}
-              autoFocus
-              disabled={isUpdatingName}
-              onChange={handleNameInput}
-              onKeyDown={(e) => {
-                if (isUpdatingName) return;
-                
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (!nameError) {
-                    handleNameChange();
-                  }
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  setIsEditingName(false);
-                }
-              }}
-              className={nameError ? 'border-destructive focus:border-destructive' : ''}
-            />
-            <div className="h-6 flex items-center">
-              {nameError && (
-                <p className="text-sm text-destructive flex items-center gap-2">
-                  <span className="w-4 h-4">⚠️</span>
-                  {nameError}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-        <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              if (!isUpdatingName) {
-                setIsEditingName(false);
-              }
-            }}
-            className="w-full sm:w-auto order-2 sm:order-1"
-            disabled={isUpdatingName}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleNameChange}
-            className="w-full sm:w-auto order-1 sm:order-2"
-            disabled={isUpdatingName || !!nameError}
-          >
-            {isUpdatingName ? 'Updating...' : 'Update Name'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
     </>
   );
 };

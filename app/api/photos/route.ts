@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '../../../storage';
 import { appConfig } from '../../../config';
-import type { ImageProps, ApiErrorResponse } from '../../../utils/types';
+import type { MediaProps, ApiErrorResponse } from '../../../utils/types';
 
 /**
  * Validates the guest filter request.
@@ -20,14 +20,16 @@ function validateGuestFilter(guestFilter: string | null): void {
  *
  * This endpoint provides a list of photos with metadata from the configured storage provider,
  * with optional filtering based on guest isolation settings.
- * 
+ *
  * Query parameters:
  * - guest: Filter photos by guest name (required if guestIsolation is true)
  *
  * @param request - Next.js request object
  * @returns JSON response with photo array or error message
  */
-export async function GET(request: NextRequest): Promise<NextResponse<ImageProps[] | ApiErrorResponse>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<MediaProps[] | ApiErrorResponse>> {
   try {
     // Extract guest filter from query parameters
     const { searchParams } = new URL(request.url);
