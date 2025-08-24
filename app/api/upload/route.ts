@@ -3,6 +3,7 @@ import { appConfig, StorageProvider } from '../../../config';
 import { storage } from '../../../storage';
 import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rateLimit';
 import type { ApiErrorResponse } from '../../../utils/types';
+import { HLSVideoProcessor } from '../../../services/HLSVideoProcessor';
 
 /**
  * Validation error class for input validation failures.
@@ -88,7 +89,49 @@ export async function POST(
 
     const { file, guestName } = validateUploadRequest(formData);
 
-    // Upload using the configured storage provider
+    // Check if this is a video file for S3 storage
+    const isVideo = file.type.startsWith('video/');
+    const isS3 = appConfig.storage === StorageProvider.S3;
+    
+    if (isVideo && isS3) {
+      // Process video with HLS for Instagram-style playback
+      const hlsProcessor = new HLSVideoProcessor();
+      const videoBuffer = Buffer.from(await file.arrayBuffer());
+      
+      const processingResult = await hlsProcessor.processVideoToHLS(
+        videoBuffer,
+        file.name,
+        {
+          guestName,
+          quality: 'medium',
+          segmentDuration: 6
+        }
+      );
+
+      // Return video metadata with HLS information
+      const mediaData = {
+        id: Date.now(),
+        height: '480',
+        width: '720',
+        public_id: processingResult.originalPath,
+        format: 'mp4',
+        resource_type: 'video' as const,
+        guestName,
+        uploadDate: new Date().toISOString(),
+        url: processingResult.playlistUrl,
+        hlsPlaylistUrl: processingResult.playlistUrl,
+        hlsPath: processingResult.hlsPath,
+        videoId: processingResult.videoId,
+        duration: processingResult.duration,
+      };
+
+      return NextResponse.json(mediaData, { 
+        status: 201,
+        headers: createRateLimitHeaders(rateLimitResult),
+      });
+    }
+
+    // Handle regular image uploads or Cloudinary video uploads
     const uploadResult = await storage.upload(file, guestName);
 
     // Return media metadata for immediate UI update

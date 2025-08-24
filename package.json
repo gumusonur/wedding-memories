@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.872.0",
+    "@aws-sdk/s3-request-presigner": "^3.873.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -24,7 +25,9 @@
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
+    "ffmpeg-static": "^5.2.0",
     "framer-motion": "^12.23.12",
+    "hls.js": "^1.6.10",
     "lucide-react": "^0.539.0",
     "next": "latest",
     "next-themes": "^0.4.6",

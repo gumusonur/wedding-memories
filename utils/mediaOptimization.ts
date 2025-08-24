@@ -191,6 +191,12 @@ export function getOptimizedMediaProps(
       format: item.format as string,
       controls: context === 'modal', // Add controls for modal view
       context, // Pass context to component
+      // HLS-specific properties for Instagram-style playback
+      hlsPlaylistUrl: item.hlsPlaylistUrl,
+      hlsPath: item.hlsPath,
+      videoId: item.videoId,
+      duration: item.duration,
+      guestName: item.guestName,
     };
   }
 

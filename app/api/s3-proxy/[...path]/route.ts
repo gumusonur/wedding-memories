@@ -102,8 +102,15 @@ export async function GET(
         }
         const buffer = Buffer.concat(chunks);
 
-        // Determine content type
-        const contentType = response.ContentType || 'application/octet-stream';
+        // Determine content type with special handling for HLS files
+        let contentType = response.ContentType || 'application/octet-stream';
+        
+        // Ensure proper MIME types for HLS files
+        if (objectKey.endsWith('.m3u8')) {
+          contentType = 'application/vnd.apple.mpegurl';
+        } else if (objectKey.endsWith('.ts')) {
+          contentType = 'video/mp2t';
+        }
 
         // Prepare headers with proper caching
         const headers: Record<string, string> = {

@@ -135,6 +135,58 @@ export function validateImageFile(file: File): boolean {
 }
 
 /**
+ * Validates if a file is a supported video format.
+ *
+ * @param file - File to validate
+ * @returns Validation result with isValid flag and error message
+ */
+export function validateVideoFile(file: File): { isValid: boolean; error?: string } {
+  try {
+    // Allow larger file sizes for videos (up to 100MB)
+    const maxVideoSize = 100 * 1024 * 1024; // 100MB
+    
+    if (!file) {
+      return { isValid: false, error: 'No video file provided' };
+    }
+
+    if (file.size > maxVideoSize) {
+      const sizeMB = Math.round(file.size / (1024 * 1024));
+      const maxSizeMB = Math.round(maxVideoSize / (1024 * 1024));
+      return { 
+        isValid: false, 
+        error: `Video size (${sizeMB}MB) exceeds maximum allowed size of ${maxSizeMB}MB` 
+      };
+    }
+
+    // Check MIME type first
+    if (file.type) {
+      const lowerType = file.type.toLowerCase();
+      if (SUPPORTED_VIDEO_TYPES.includes(lowerType as any)) {
+        return { isValid: true };
+      }
+    }
+
+    // Fallback: check file extension
+    const fileName = file.name?.toLowerCase() || '';
+    const hasValidVideoExtension = SUPPORTED_VIDEO_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+    if (hasValidVideoExtension) {
+      return { isValid: true };
+    }
+
+    return { 
+      isValid: false, 
+      error: 'Video must be in MP4, MOV, AVI, or WebM format' 
+    };
+
+  } catch (error) {
+    return { 
+      isValid: false, 
+      error: error instanceof Error ? error.message : 'Video validation failed' 
+    };
+  }
+}
+
+/**
  * Sanitizes a string by converting international characters to ASCII equivalents.
  *
  * @param text - Text to sanitize
