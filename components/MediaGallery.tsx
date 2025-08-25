@@ -83,46 +83,49 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
     }
   }, [initialMedia, media.length, setMedia]);
 
-  const refetchWeddingMediaInternal = useCallback(async (showLoading: boolean = true, currentGuestName?: string): Promise<number> => {
-    if (showLoading) {
-      setIsLoading(true);
-    }
-    try {
-      let url = '/api/photos';
-      const guestToUse = currentGuestName || guestName;
-      if (appConfig.guestIsolation && guestToUse) {
-        url += `?guest=${encodeURIComponent(guestToUse)}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (response.ok) {
-        const refreshedMedia = await response.json();
-        setMedia(refreshedMedia);
-        refresh();
-        return refreshedMedia.length;
-      } else {
-        console.error('Failed to refetch media:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Network error while refetching media:', error);
-    } finally {
+  const refetchWeddingMediaInternal = useCallback(
+    async (showLoading: boolean = true, currentGuestName?: string): Promise<number> => {
       if (showLoading) {
-        setIsLoading(false);
+        setIsLoading(true);
       }
-    }
-    return 0;
-  }, [setMedia, setIsLoading, refresh, guestName]);
+      try {
+        let url = '/api/photos';
+        const guestToUse = currentGuestName || guestName;
+        if (appConfig.guestIsolation && guestToUse) {
+          url += `?guest=${encodeURIComponent(guestToUse)}`;
+        }
+
+        const response = await fetch(url, {
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        if (response.ok) {
+          const refreshedMedia = await response.json();
+          setMedia(refreshedMedia);
+          refresh();
+          return refreshedMedia.length;
+        } else {
+          console.error('Failed to refetch media:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Network error while refetching media:', error);
+      } finally {
+        if (showLoading) {
+          setIsLoading(false);
+        }
+      }
+      return 0;
+    },
+    [setMedia, setIsLoading, refresh, guestName]
+  );
 
   // Single fetch effect for guest isolation - only refetch if guest changes and we need isolation
   useEffect(() => {
     if (appConfig.guestIsolation && guestName) {
       const isNewGuest = previousGuestName.current !== guestName;
-      
+
       if (isNewGuest) {
         // Only show loading for subsequent guest changes, not the first one
         refetchWeddingMediaInternal(previousGuestName.current !== null, guestName);
@@ -144,8 +147,8 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">No media yet</h2>
           <p className="text-lg">
-            Be the first to share a memory from {appConfig.brideName} &{' '}
-            {appConfig.groomName}&apos;s special day!
+            Be the first to share a memory from {appConfig.brideName} & {appConfig.groomName}&apos;s
+            special day!
           </p>
         </div>
       </div>
@@ -189,8 +192,8 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
           >
             <StorageAwareMedia
               {...getOptimizedMediaProps(mediaItem, 'gallery', { priority: index < 6 })}
-              className="transform rounded-lg brightness-90 transition will-change-auto group-hover:brightness-110 group-focus:brightness-110"
-              style={{ transform: "translate3d(0, 0, 0)" }}
+              className="overflow-hidden transform rounded-lg brightness-90 transition will-change-auto group-hover:brightness-110 group-focus:brightness-110"
+              style={{ transform: 'translate3d(0, 0, 0)' }}
             />
             {(mediaItem.guestName || mediaItem.uploadDate) && (
               <div
@@ -198,8 +201,12 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
                 aria-hidden="true"
               >
                 <div className="text-white text-xs font-medium p-2 text-center">
-                  {mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest' && <p>Shared by {mediaItem.guestName}</p>}
-                  {mediaItem.uploadDate && <p className="text-white/80">{formatUploadDate(mediaItem.uploadDate)}</p>}
+                  {mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest' && (
+                    <p>Shared by {mediaItem.guestName}</p>
+                  )}
+                  {mediaItem.uploadDate && (
+                    <p className="text-white/80">{formatUploadDate(mediaItem.uploadDate)}</p>
+                  )}
                 </div>
               </div>
             )}

@@ -62,9 +62,12 @@ export class S3Service implements StorageService {
       const fileExtension = file.name.split('.').pop() || 'jpg';
       const filename = `${timestamp}-${randomSuffix}.${fileExtension}`;
 
+      // Sanitize guest name for consistency (matches HLS processor and list logic)
+      const sanitizedGuestName = guestName ? this.sanitizeGuestName(guestName) : undefined;
+
       // Determine S3 key (path)
-      const key = guestName 
-        ? `${this.baseFolder}/${guestName}/${filename}`
+      const key = sanitizedGuestName 
+        ? `${this.baseFolder}/${sanitizedGuestName}/${filename}`
         : `${this.baseFolder}/${filename}`;
 
       // Upload to S3
@@ -75,7 +78,7 @@ export class S3Service implements StorageService {
         ContentType: file.type,
         Metadata: {
           originalName: file.name,
-          guestName: guestName || 'unknown',
+          guestName: sanitizedGuestName || 'unknown',
           uploadDate: new Date().toISOString(),
         },
       });

@@ -379,7 +379,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         // Add photo directly to the UI for immediate feedback
         const newMedia: MediaProps = {
           id: Date.now(), // Generate a unique numeric ID
-          public_id: data.public_id || data.url,
+          public_id: data.public_id || data.url || '',
           format: data.format,
           resource_type: data.resource_type,
           blurDataUrl: '', // Will be generated on next page load
@@ -387,6 +387,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           uploadDate: data.uploadDate || data.created_at,
           height: data.height?.toString() || '480',
           width: data.width?.toString() || '720',
+          // Include video-specific properties if they exist
+          hlsPlaylistUrl: data.hlsPlaylistUrl,
+          hlsPath: data.hlsPath,
+          videoId: data.videoId,
+          duration: data.duration,
         };
 
         addMedia(newMedia);

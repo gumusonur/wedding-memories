@@ -30,6 +30,7 @@ interface HLSVideoPlayerProps {
   context?: 'feed' | 'modal' | 'thumb';
   style?: React.CSSProperties;
   onClick?: () => void;
+  playOnHover?: boolean; // Play only on hover (desktop)
 }
 
 // Global state to track video positions for resume functionality
@@ -49,6 +50,7 @@ export function HLSVideoPlayer({
   context = 'feed',
   style,
   onClick,
+  playOnHover = false,
 }: HLSVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -196,14 +198,40 @@ export function HLSVideoPlayer({
   const handleVideoClick = useCallback(() => {
     if (onClick) {
       onClick();
-    } else if (!controls) {
-      // In feed mode, clicking toggles play/pause
+    } else if (!controls && !playOnHover) {
+      // In feed mode, clicking toggles play/pause (only if not hover-controlled)
       togglePlayPause();
     }
-  }, [onClick, controls, togglePlayPause]);
+  }, [onClick, controls, togglePlayPause, playOnHover]);
+
+  // Handle hover events for desktop
+  const handleMouseEnter = useCallback(() => {
+    if (playOnHover && !controls) {
+      const video = videoRef.current;
+      if (video && !isPlaying) {
+        video.play().catch((err) => {
+          console.warn('Hover play failed:', err);
+        });
+      }
+    }
+  }, [playOnHover, controls, isPlaying]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (playOnHover && !controls) {
+      const video = videoRef.current;
+      if (video && isPlaying) {
+        video.pause();
+      }
+    }
+  }, [playOnHover, controls, isPlaying]);
 
   return (
-    <div className={`relative ${className}`} style={style}>
+    <div 
+      className={`relative ${className}`} 
+      style={style}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Loading state */}
       {isLoading && (
         <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
@@ -247,10 +275,12 @@ export function HLSVideoPlayer({
       {/* Custom controls overlay for feed mode */}
       {!controls && !isLoading && !error && (
         <>
-          {/* Play/Pause overlay */}
-          {!isPlaying && (
+          {/* Play/Pause overlay - only show when not playing or for hover videos */}
+          {(!isPlaying || playOnHover) && (
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <div className="bg-black/70 rounded-full p-3 backdrop-blur-sm">
+              <div className={`bg-black/70 rounded-full p-3 backdrop-blur-sm transition-opacity duration-200 ${
+                playOnHover && isPlaying ? 'opacity-0' : 'opacity-100'
+              }`}>
                 <Play className="w-8 h-8 text-white" fill="white" />
               </div>
             </div>

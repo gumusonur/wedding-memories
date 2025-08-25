@@ -1,6 +1,6 @@
 /**
  * Storage-aware media component that handles both Cloudinary and S3/Wasabi storage.
- * 
+ *
  * - For Cloudinary: Uses Next.js Image for optimization or a video tag.
  * - For S3/Wasabi: Uses direct img/video tags to avoid optimization issues.
  */
@@ -16,6 +16,12 @@ import { HLSVideoPlayer, getStoredVideoPosition } from './HLSVideoPlayer';
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Desktop detection utility (opposite of mobile)
+const isDesktopDevice = () => {
+  if (typeof window === 'undefined') return true; // Default to desktop on server
+  return !isMobileDevice();
 };
 
 interface StorageAwareMediaProps extends Omit<MediaProps, 'id' | 'public_id'> {
@@ -73,23 +79,26 @@ export function StorageAwareMedia({
   const heightNum = parseInt(height, 10);
 
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Video-specific state and refs (declared before conditional logic)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const isGalleryView = !controls;
 
-  // Detect mobile device on mount
+  // Detect device type on mount
   useEffect(() => {
-    setIsMobile(isMobileDevice());
+    const mobile = isMobileDevice();
+    const desktop = isDesktopDevice();
+    setIsMobile(mobile);
+    setIsDesktop(desktop);
   }, []);
-
 
   useEffect(() => {
     if (resource_type !== 'video') return;
-    
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -121,7 +130,7 @@ export function StorageAwareMedia({
         return;
       }
     }
-    
+
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       setIsLoading(false);
       return;
@@ -188,7 +197,7 @@ export function StorageAwareMedia({
       };
 
       return (
-        <div 
+        <div
           className="relative group w-full h-full"
           onMouseEnter={onMouseEnter}
           tabIndex={tabIndex}
@@ -198,14 +207,19 @@ export function StorageAwareMedia({
             media={mediaProps}
             className={className}
             style={style}
-            autoplay={context === 'gallery'}
+            autoplay={context === 'gallery' && isMobile}
             muted={context !== 'modal'}
             controls={controls}
             loop={context === 'gallery'}
             context={context === 'gallery' ? 'feed' : context}
             onClick={onClick}
             onLoadedData={onLoad}
-            startTime={context === 'modal' ? getStoredVideoPosition(mediaProps.guestName!, mediaProps.videoId!) : 0}
+            startTime={
+              context === 'modal'
+                ? getStoredVideoPosition(mediaProps.guestName!, mediaProps.videoId!)
+                : 0
+            }
+            playOnHover={context === 'gallery' && isDesktop}
           />
         </div>
       );
@@ -213,12 +227,22 @@ export function StorageAwareMedia({
 
     // Fallback to regular video element
     return (
-      <div 
+      <div
         className="relative group w-full h-full"
         onClick={onClick}
         onMouseEnter={() => {
           handleVideoInteraction();
           onMouseEnter?.();
+          // Desktop hover play for gallery context
+          if (isDesktop && context === 'gallery' && videoRef.current) {
+            videoRef.current.play().catch(() => {});
+          }
+        }}
+        onMouseLeave={() => {
+          // Desktop hover pause for gallery context
+          if (isDesktop && context === 'gallery' && videoRef.current) {
+            videoRef.current.pause();
+          }
         }}
         onFocus={handleVideoInteraction}
         tabIndex={tabIndex}
@@ -227,24 +251,33 @@ export function StorageAwareMedia({
         {/* Loading skeleton with clean video-focused design */}
         {isLoading && !loadError && (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg flex items-center justify-center">
-            <div className={`flex flex-col items-center text-gray-600 dark:text-gray-300 ${
-              context === 'thumb' ? 'space-y-1' : 'space-y-3'
-            }`}>
+            <div
+              className={`flex flex-col items-center text-gray-600 dark:text-gray-300 ${
+                context === 'thumb' ? 'space-y-1' : 'space-y-3'
+              }`}
+            >
               <div className="relative">
-                <div className={`animate-spin rounded-full border-gray-400 border-t-transparent ${
-                  context === 'thumb' ? 'h-4 w-4 border' : 'h-8 w-8 border-2'
-                }`}></div>
-                <Play className={`absolute inset-0 m-auto text-gray-500 ${
-                  context === 'thumb' ? 'w-2 h-2' : 'w-4 h-4'
-                }`} />
+                <div
+                  className={`animate-spin rounded-full border-gray-400 border-t-transparent ${
+                    context === 'thumb' ? 'h-4 w-4 border' : 'h-8 w-8 border-2'
+                  }`}
+                ></div>
+                <Play
+                  className={`absolute inset-0 m-auto text-gray-500 ${
+                    context === 'thumb' ? 'w-2 h-2' : 'w-4 h-4'
+                  }`}
+                />
               </div>
-              <div className={`font-medium text-center ${
-                context === 'thumb' ? 'text-xs' : 'text-sm'
-              }`}>
-                {context === 'thumb' 
-                  ? (isMobile ? 'Preparing...' : 'Loading...') 
-                  : (isMobile ? 'Preparing video...' : 'Loading video...')
-                }
+              <div
+                className={`font-medium text-center ${context === 'thumb' ? 'text-xs' : 'text-sm'}`}
+              >
+                {context === 'thumb'
+                  ? isMobile
+                    ? 'Preparing...'
+                    : 'Loading...'
+                  : isMobile
+                    ? 'Preparing video...'
+                    : 'Loading video...'}
               </div>
               {context !== 'thumb' && !isMobile && (
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -273,7 +306,7 @@ export function StorageAwareMedia({
 
         {/* Play overlay for gallery view - more prominent without poster */}
         {isGalleryView && !isLoading && !loadError && (
-          <div 
+          <div
             className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-200 rounded-lg flex items-center justify-center"
             onClick={(e) => {
               // For gallery videos, ensure video is ready before playing
@@ -285,13 +318,17 @@ export function StorageAwareMedia({
                   video.preload = 'auto';
                   video.load();
                   setIsLoading(true);
-                  video.addEventListener('canplay', () => {
-                    setIsLoading(false);
-                    video.play().catch(() => {
-                      // Fallback if autoplay fails
+                  video.addEventListener(
+                    'canplay',
+                    () => {
                       setIsLoading(false);
-                    });
-                  }, { once: true });
+                      video.play().catch(() => {
+                        // Fallback if autoplay fails
+                        setIsLoading(false);
+                      });
+                    },
+                    { once: true }
+                  );
                 } else {
                   video.play().catch(() => {
                     // Video play failed, user will need to try again
@@ -300,12 +337,15 @@ export function StorageAwareMedia({
               }
             }}
           >
-            <div className={`bg-black/70 rounded-full opacity-90 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm shadow-lg ${
-              context === 'thumb' ? 'p-1' : 'p-4'
-            }`}>
-              <Play className={`text-white ${
-                context === 'thumb' ? 'w-2 h-2' : 'w-8 h-8'
-              }`} fill="white" />
+            <div
+              className={`bg-black/70 rounded-full opacity-90 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm shadow-lg ${
+                context === 'thumb' ? 'p-1' : 'p-4'
+              }`}
+            >
+              <Play
+                className={`text-white ${context === 'thumb' ? 'w-2 h-2' : 'w-4 h-4'}`}
+                fill="white"
+              />
             </div>
             {/* Video indicator badge - smaller for thumbs */}
             {context !== 'thumb' && (
@@ -352,7 +392,7 @@ export function StorageAwareMedia({
             <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
           </div>
         )}
-        
+
         <Image
           src={src}
           alt={alt}
@@ -389,7 +429,7 @@ export function StorageAwareMedia({
           <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
         </div>
       )}
-      
+
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
