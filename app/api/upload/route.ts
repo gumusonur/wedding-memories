@@ -74,7 +74,7 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
  */
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<{ url: string } | ApiErrorResponse>> {
+): Promise<NextResponse<{ url: string; uploadMethod?: string; presignedUrl?: string; publicUrl?: string; guestName?: string; fileName?: string; } | ApiErrorResponse>> {
   try {
     const rateLimitResult = checkUploadRateLimit(request);
     if (!rateLimitResult.success) {
@@ -110,6 +110,7 @@ export async function POST(
         });
 
         return NextResponse.json({
+          url: uploadData.uploadUrl,
           uploadMethod: 'direct',
           presignedUrl: uploadData.uploadUrl,
           publicUrl: uploadData.publicUrl,
