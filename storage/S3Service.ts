@@ -181,7 +181,8 @@ export class S3Service implements StorageService {
         });
 
         const resolvedMediaItems = await Promise.all(mediaPromises);
-        mediaItems.push(...resolvedMediaItems.filter((item): item is MediaProps => item !== null));
+        const validMediaItems = resolvedMediaItems.filter((item): item is NonNullable<typeof item> => item !== null);
+        mediaItems.push(...validMediaItems);
       }
 
       // Sort by upload date in descending order
