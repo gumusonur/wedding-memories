@@ -255,7 +255,7 @@ export class HLSVideoProcessor {
     options: HLSProcessingOptions
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const segmentDuration = options.segmentDuration || 6; // 6-second segments for fast seeking
+      const segmentDuration = options.segmentDuration || 4; // Reduced to 4 seconds for better streaming
       const playlistPath = path.join(outputDir, 'index.m3u8');
       
       // Quality settings
@@ -276,6 +276,7 @@ export class HLSVideoProcessor {
         '-hls_playlist_type', 'vod',
         '-hls_segment_filename', path.join(outputDir, 'chunk%d.ts'),
         '-hls_flags', 'independent_segments',
+        '-hls_list_size', '0', // Keep all segments in playlist
         '-y', // Overwrite output files
         playlistPath
       ];

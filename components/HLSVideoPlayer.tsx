@@ -82,6 +82,22 @@ export function HLSVideoPlayer({
         enableWorker: true,
         lowLatencyMode: false,
         backBufferLength: 90, // Keep 90 seconds of buffer for seeking
+        // Increase timeouts for better reliability
+        manifestLoadingTimeOut: 20000, // 20 seconds
+        manifestLoadingMaxRetry: 3,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 20000, // 20 seconds
+        levelLoadingMaxRetry: 3,
+        levelLoadingRetryDelay: 1000,
+        fragLoadingTimeOut: 20000, // 20 seconds (increased from default 10s)
+        fragLoadingMaxRetry: 3, // Allow retries
+        fragLoadingRetryDelay: 1000,
+        fragLoadingMaxRetryTimeout: 5000,
+        // Enable progressive streaming
+        progressive: true,
+        // Reduce max buffer to prevent memory issues
+        maxBufferLength: 60,
+        maxMaxBufferLength: 600,
       });
 
       hls.loadSource(media.hlsPlaylistUrl);
@@ -97,8 +113,12 @@ export function HLSVideoPlayer({
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS Error:', data);
-        setError(t('video.playbackError'));
-        setIsLoading(false);
+        // Only show error to user for fatal errors or after retries are exhausted
+        if (data.fatal || data.details === 'fragLoadError') {
+          setError(t('video.playbackError'));
+          setIsLoading(false);
+        }
+        // For non-fatal errors, allow HLS.js to retry
       });
 
       hlsRef.current = hls;

@@ -52,14 +52,17 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const isDownload = searchParams.get('download') === 'true';
     
+    // Check for range requests (important for video streaming)
+    const range = request.headers.get('range');
+    
     // Create unique key for request deduplication
-    const requestKey = `${objectKey}:${isDownload}`;
+    const requestKey = `${objectKey}:${isDownload}:${range || 'full'}`;
     
     // Check for conditional requests (If-None-Match)
     const ifNoneMatch = request.headers.get('if-none-match');
     const expectedETag = `"${objectKey}-cached"`;
     
-    if (ifNoneMatch === expectedETag && !isDownload) {
+    if (ifNoneMatch === expectedETag && !isDownload && !range) {
       return new NextResponse(null, {
         status: 304,
         headers: {
@@ -83,12 +86,20 @@ export async function GET(
     // Create the request promise and store it for deduplication
     const requestPromise = (async () => {
       try {
-        // Fetch the object from S3/Wasabi using AWS SDK
-        const command = new GetObjectCommand({
+        // Handle range requests for video streaming
+        const range = request.headers.get('range');
+        const commandParams: any = {
           Bucket: bucket,
           Key: objectKey,
-        });
+        };
 
+        // Add range to S3 request if present
+        if (range) {
+          commandParams.Range = range;
+        }
+
+        // Fetch the object from S3/Wasabi using AWS SDK
+        const command = new GetObjectCommand(commandParams);
         const response = await s3Client.send(command);
 
         if (!response.Body) {
@@ -117,10 +128,19 @@ export async function GET(
           'Content-Type': contentType,
           'Content-Length': buffer.length.toString(),
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Methods': 'GET, HEAD',
           'Access-Control-Allow-Headers': 'Content-Type, Range',
           'Accept-Ranges': 'bytes', // Enable range requests for video streaming
         };
+
+        let status = 200;
+        
+        // Handle range requests properly
+        if (range && response.ContentRange) {
+          headers['Content-Range'] = response.ContentRange;
+          headers['Content-Length'] = buffer.length.toString();
+          status = 206; // Partial Content
+        }
 
         // Add download headers if requested
         if (isDownload) {
@@ -141,7 +161,7 @@ export async function GET(
         return {
           buffer,
           contentType,
-          status: 200,
+          status,
           headers,
         };
       } finally {
