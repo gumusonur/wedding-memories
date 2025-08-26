@@ -69,7 +69,6 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<{ url: string } | ApiErrorResponse>> {
   try {
-    // Check rate limits first (fail fast)
     const rateLimitResult = checkUploadRateLimit(request);
     if (!rateLimitResult.success) {
       const errorResponse: ApiErrorResponse = {
@@ -89,12 +88,10 @@ export async function POST(
 
     const { file, guestName } = validateUploadRequest(formData);
 
-    // Check if this is a video file for S3 storage
     const isVideo = file.type.startsWith('video/');
     const isS3 = appConfig.storage === StorageProvider.S3;
     
     if (isVideo && isS3) {
-      // Process video with HLS for Instagram-style playback
       const hlsProcessor = new HLSVideoProcessor();
       const videoBuffer = Buffer.from(await file.arrayBuffer());
       
@@ -108,7 +105,6 @@ export async function POST(
         }
       );
 
-      // Return video metadata with HLS information
       const mediaData = {
         id: Date.now(),
         height: '480',
@@ -131,10 +127,8 @@ export async function POST(
       });
     }
 
-    // Handle regular image uploads or Cloudinary video uploads
     const uploadResult = await storage.upload(file, guestName);
 
-    // Return media metadata for immediate UI update
     const mediaData = {
       ...uploadResult,
       guestName,

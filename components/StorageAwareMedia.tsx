@@ -12,15 +12,13 @@ import type { MediaProps } from '../utils/types';
 import { Play } from 'lucide-react';
 import { HLSVideoPlayer, getStoredVideoPosition } from './HLSVideoPlayer';
 
-// Mobile detection utility
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Desktop detection utility (opposite of mobile)
 const isDesktopDevice = () => {
-  if (typeof window === 'undefined') return true; // Default to desktop on server
+  if (typeof window === 'undefined') return true;
   return !isMobileDevice();
 };
 
@@ -37,10 +35,9 @@ interface StorageAwareMediaProps extends Omit<MediaProps, 'id' | 'public_id'> {
   onKeyDown?: (e: React.KeyboardEvent) => void;
   onLoad?: () => void;
   draggable?: boolean;
-  poster?: string; // Add poster prop
-  controls?: boolean; // Add controls prop
-  context?: 'gallery' | 'modal' | 'thumb'; // Add context prop to determine size
-  // HLS-specific props
+  poster?: string;
+  controls?: boolean;
+  context?: 'gallery' | 'modal' | 'thumb';
   hlsPlaylistUrl?: string;
   hlsPath?: string;
   videoId?: string;
@@ -83,7 +80,6 @@ export function StorageAwareMedia({
     return true;
   });
 
-  // Video-specific state and refs (declared before conditional logic)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -91,7 +87,6 @@ export function StorageAwareMedia({
   const [isDesktop, setIsDesktop] = useState(true);
   const isGalleryView = !controls;
 
-  // Detect device type on mount
   useEffect(() => {
     const mobile = isMobileDevice();
     const desktop = isDesktopDevice();

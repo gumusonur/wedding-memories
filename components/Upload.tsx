@@ -62,7 +62,6 @@ interface UploadProps {
 }
 
 export const Upload = ({ currentGuestName }: UploadProps) => {
-  // Zustand store hooks
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
   const addMedia = useAddMedia();
@@ -82,35 +81,29 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Name validation function with file system safety
   const validateName = (name: string): string | null => {
     return validateGuestNameForUI(name);
   };
 
-  // Initialize guest name from store or props
   useEffect(() => {
     if (currentGuestName && currentGuestName !== guestName) {
       setGuestName(currentGuestName);
     }
   }, [currentGuestName, guestName, setGuestName]);
 
-  // Detect screen size for responsive UI
   useEffect(() => {
     const checkScreenSize = () => {
       setIsLargeScreen(window.innerWidth >= 1024); // lg breakpoint
     };
 
-    // Check on mount
     checkScreenSize();
 
-    // Listen for resize events
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
   const isValidMediaFile = (file: File): boolean => {
     try {
-      // Check if using S3/Wasabi storage (allows videos and no file size limit)
       const isS3Storage = appConfig.storage === StorageProvider.S3;
 
       return validateMediaFile(file, isS3Storage, !isS3Storage);
@@ -147,24 +140,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
   const createFileHash = async (file: File): Promise<string> => {
     try {
-      // Check if crypto.subtle is available (Safari compatibility)
       if (!window.crypto || !window.crypto.subtle) {
-        // Fallback: use file name + size + lastModified as hash
         return `fallback_${file.name}_${file.size}_${file.lastModified}`;
       }
 
-      // Check file size limit (2GB) for Safari/Chrome compatibility
       if (file.size > 2 * 1024 * 1024 * 1024) {
-        // For large files, use metadata hash
         return `large_${file.name}_${file.size}_${file.lastModified}`;
       }
 
-      // Try to use modern File.arrayBuffer() method
       let arrayBuffer: ArrayBuffer;
       if (file.arrayBuffer) {
         arrayBuffer = await file.arrayBuffer();
       } else {
-        // Fallback for older browsers using FileReader
         arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -185,17 +172,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
     } catch (error) {
       console.warn('Hash creation failed, using fallback:', error);
-      // Ultimate fallback: use file metadata
       return `error_${file.name}_${file.size}_${file.lastModified}`;
     }
   };
 
   const isDuplicateFile = (newFile: File, newHash: string): boolean => {
     return files.some((existingFile) => {
-      // Check by hash (most reliable)
       if (existingFile.hash === newHash) return true;
 
-      // Check by name and size as fallback
       if (existingFile.file.name === newFile.name && existingFile.file.size === newFile.size)
         return true;
 

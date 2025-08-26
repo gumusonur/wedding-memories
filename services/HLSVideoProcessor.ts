@@ -13,9 +13,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../storage/S3Service';
 
-// FFmpeg path resolution with proper fallback
 function getFfmpegPaths(): { ffmpeg: string; ffprobe: string } {
-  // First, try system FFmpeg (more reliable)
   try {
     const { execSync } = require('child_process');
     const systemFfmpeg = execSync('which ffmpeg', { encoding: 'utf8' }).trim();
@@ -29,18 +27,15 @@ function getFfmpegPaths(): { ffmpeg: string; ffprobe: string } {
     console.log('System FFmpeg/FFprobe not found, trying ffmpeg-static');
   }
 
-  // Fallback: try ffmpeg-static
   try {
     const ffmpegStatic = require('ffmpeg-static');
     if (ffmpegStatic) {
       console.log('FFmpeg path configured from ffmpeg-static:', ffmpegStatic);
-      // ffmpeg-static doesn't include ffprobe, try to find it
       try {
         const { execSync } = require('child_process');
         const systemFfprobe = execSync('which ffprobe', { encoding: 'utf8' }).trim();
         return { ffmpeg: ffmpegStatic, ffprobe: systemFfprobe };
       } catch {
-        // If no system ffprobe, hope it's in the same directory as ffmpeg-static
         const path = require('path');
         const ffprobeStatic = path.join(path.dirname(ffmpegStatic), 'ffprobe');
         return { ffmpeg: ffmpegStatic, ffprobe: ffprobeStatic };
@@ -53,7 +48,6 @@ function getFfmpegPaths(): { ffmpeg: string; ffprobe: string } {
   throw new Error('FFmpeg/FFprobe not found. Please install FFmpeg or ensure ffmpeg-static is properly configured.');
 }
 
-// Get FFmpeg paths on initialization
 const ffmpegPaths = getFfmpegPaths();
 
 export interface HLSProcessingOptions {
@@ -101,7 +95,6 @@ export class HLSVideoProcessor {
     
     console.log(`[HLS] Starting video processing for ${originalFileName} (ID: ${videoId})`);
     
-    // Create temp directory if it doesn't exist
     await this.ensureTempDirectory();
     
     const tempVideoPath = path.join(this.tempDir, `${videoId}_input.mp4`);
@@ -109,42 +102,34 @@ export class HLSVideoProcessor {
     
     try {
       console.log(`[HLS] Writing video buffer to ${tempVideoPath}`);
-      // Write video buffer to temp file
       await fs.writeFile(tempVideoPath, videoBuffer);
       
       console.log(`[HLS] Creating output directory ${tempOutputDir}`);
-      // Create output directory
       await fs.mkdir(tempOutputDir, { recursive: true });
       
       console.log(`[HLS] Getting video information`);
-      // Get video information
       const videoInfo = await this.getVideoInfo(tempVideoPath);
       console.log(`[HLS] Video info: ${videoInfo.width}x${videoInfo.height}, duration: ${videoInfo.duration}s`);
       
       console.log(`[HLS] Generating HLS segments`);
-      // Generate HLS with FFmpeg
       await this.generateHLS(tempVideoPath, tempOutputDir, options);
       console.log(`[HLS] HLS generation completed`);
       
       console.log(`[HLS] Uploading original video to S3`);
-      // Upload original video to S3
       const originalS3Key = `wedding/${sanitizedGuestName}/originals/${videoId}.mp4`;
       await this.s3Service.uploadFile(videoBuffer, originalS3Key, 'video/mp4');
       
       console.log(`[HLS] Uploading HLS files to S3`);
-      // Upload HLS files to S3
       const hlsS3Key = `wedding/${sanitizedGuestName}/hls/${videoId}`;
       const segmentUrls = await this.uploadHLSToS3(tempOutputDir, hlsS3Key);
       console.log(`[HLS] Uploaded ${segmentUrls.length} HLS segments`);
       
-      // Generate URLs using S3 proxy instead of signed URLs for better HLS compatibility
       const playlistUrl = `/api/s3-proxy/${hlsS3Key}/index.m3u8`;
       const originalPath = `${originalS3Key}`;
       
       console.log(`[HLS] Generated playlist URL: ${playlistUrl}`);
       
       console.log(`[HLS] Cleaning up temp files`);
-      // Clean up temp files
       await this.cleanup(tempVideoPath, tempOutputDir);
       
       console.log(`[HLS] Video processing completed successfully for ${videoId}`);
@@ -159,7 +144,6 @@ export class HLSVideoProcessor {
       
     } catch (error) {
       console.error(`[HLS] Error processing video ${videoId}:`, error);
-      // Clean up on error
       await this.cleanup(tempVideoPath, tempOutputDir);
       throw new Error(`HLS processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

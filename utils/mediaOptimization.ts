@@ -10,7 +10,6 @@ import type { MediaProps } from './types';
 import { getImageUrl, getThumbnailUrl, getFullUrl } from './imageUrl';
 import { appConfig, StorageProvider } from '../config';
 
-// URL generation cache to prevent excessive URL generation
 const urlCache = new Map<string, string>();
 
 export function getOptimizedMediaUrl(
@@ -19,21 +18,17 @@ export function getOptimizedMediaUrl(
   resourceType: 'image' | 'video',
   quality: 'thumb' | 'medium' | 'full' = 'medium'
 ): string {
-  // Create cache key
   const cacheKey = `${publicId}-${resourceType}-${quality}`;
   
-  // Check cache first
   if (urlCache.has(cacheKey)) {
     return urlCache.get(cacheKey)!;
   }
   
   let url: string;
   
-  // For S3, we don't have transformations, so use the full URL for all qualities
   if (appConfig.storage === StorageProvider.S3) {
     url = getFullUrl(publicId, resourceType);
   } else {
-    // Cloudinary supports quality transformations
     if (resourceType === 'video') {
       switch (quality) {
         case 'thumb':
@@ -49,7 +44,6 @@ export function getOptimizedMediaUrl(
           url = getImageUrl(publicId, resourceType, 720, undefined, 'medium');
       }
     } else {
-      // Image handling for Cloudinary
       switch (quality) {
         case 'thumb':
           url = getThumbnailUrl(publicId, resourceType);
@@ -66,7 +60,6 @@ export function getOptimizedMediaUrl(
     }
   }
   
-  // Cache the result
   urlCache.set(cacheKey, url);
   return url;
 }

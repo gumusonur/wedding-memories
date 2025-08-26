@@ -61,27 +61,21 @@ export function HLSVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Create unique key for this video
   const videoKey = `${media.guestName}-${media.videoId}`;
 
-  // Initialize HLS player
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !media.hlsPlaylistUrl) return;
 
-    // Clean up existing HLS instance
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Check if HLS is supported natively or via hls.js
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari)
       video.src = media.hlsPlaylistUrl;
       setError(null);
     } else if (Hls.isSupported()) {
-      // Use hls.js for other browsers
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -93,7 +87,6 @@ export function HLSVideoPlayer({
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setError(null);
-        // Set start time if provided or resume from stored position
         const resumeTime = startTime || videoTimestamps.get(videoKey) || 0;
         if (resumeTime > 0) {
           video.currentTime = resumeTime;
@@ -112,7 +105,6 @@ export function HLSVideoPlayer({
       setIsLoading(false);
     }
 
-    // Cleanup function
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -121,7 +113,6 @@ export function HLSVideoPlayer({
     };
   }, [media.hlsPlaylistUrl, startTime, videoKey]);
 
-  // Video event handlers
   const handleLoadedData = useCallback(() => {
     setIsLoading(false);
     onLoadedData?.();
@@ -134,9 +125,7 @@ export function HLSVideoPlayer({
     const time = video.currentTime;
     setCurrentTime(time);
 
-    // Store timestamp for resume functionality
     if (time > 1) {
-      // Only store if we're past the first second
       videoTimestamps.set(videoKey, time);
     }
 
@@ -162,11 +151,9 @@ export function HLSVideoPlayer({
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
-    // Reset timestamp when video ends
     videoTimestamps.delete(videoKey);
   }, [videoKey]);
 
-  // Control functions
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -188,24 +175,20 @@ export function HLSVideoPlayer({
     setIsMuted(video.muted);
   }, []);
 
-  // Format time for display
   const formatTime = (time: number): string => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Handle video click
   const handleVideoClick = useCallback(() => {
     if (onClick) {
       onClick();
     } else if (!controls && !playOnHover) {
-      // In feed mode, clicking toggles play/pause (only if not hover-controlled)
       togglePlayPause();
     }
   }, [onClick, controls, togglePlayPause, playOnHover]);
 
-  // Handle hover events for desktop
   const handleMouseEnter = useCallback(() => {
     if (playOnHover && !controls) {
       const video = videoRef.current;

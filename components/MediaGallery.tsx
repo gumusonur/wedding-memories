@@ -20,8 +20,6 @@ import {
   useGuestName,
 } from '../store/useAppStore';
 
-// Request deduplication to prevent multiple simultaneous API calls
-
 interface MediaGalleryProps {
   initialMedia: MediaProps[];
 }
@@ -76,7 +74,6 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
   const guestName = useGuestName();
   const previousGuestName = useRef<string | null>(null);
 
-  // Set initial media only once
   useEffect(() => {
     if (initialMedia.length > 0 && media.length === 0) {
       setMedia(initialMedia);
@@ -127,7 +124,6 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
       const isNewGuest = previousGuestName.current !== guestName;
 
       if (isNewGuest) {
-        // Only show loading for subsequent guest changes, not the first one
         refetchWeddingMediaInternal(previousGuestName.current !== null, guestName);
         previousGuestName.current = guestName;
       }
