@@ -297,14 +297,17 @@ export class S3Service implements StorageService {
    * Generates a presigned URL for direct video upload.
    */
   async generateVideoUploadUrl(options: VideoUploadData): Promise<PresignedUploadResponse> {
-    const { guestName, videoId } = options;
+    const { guestName, videoId, fileType, fileName } = options;
     const sanitizedGuestName = this.sanitizeGuestName(guestName);
-    const key = `${sanitizedGuestName}/videos/${videoId}.mp4`;
+    
+    // Use the actual file extension instead of hardcoding .mp4
+    const fileExtension = fileName.includes('.') ? fileName.split('.').pop() : 'mp4';
+    const key = `${sanitizedGuestName}/videos/${videoId}.${fileExtension}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      ContentType: 'video/mp4',
+      ContentType: fileType || 'video/mp4',
     });
 
     const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour
