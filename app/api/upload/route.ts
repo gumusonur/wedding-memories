@@ -5,6 +5,15 @@ import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rat
 import type { ApiErrorResponse } from '../../../utils/types';
 import { HLSVideoProcessor } from '../../../services/HLSVideoProcessor';
 
+// Increase body size limit for file uploads to accommodate videos
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '150mb',
+    },
+  },
+};
+
 /**
  * Validation error class for input validation failures.
  */

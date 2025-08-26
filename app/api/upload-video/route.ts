@@ -11,6 +11,15 @@ import { validateVideoFile } from '../../../utils/validation';
 import { storage } from '../../../storage';
 import type { MediaProps } from '../../../utils/types';
 
+// Increase body size limit for video uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '150mb',
+    },
+  },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

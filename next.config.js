@@ -81,6 +81,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Move server components external packages to correct location
+  serverExternalPackages: ['ffmpeg-static', 'ffprobe-static'],
 };
 
 module.exports = nextConfig;
