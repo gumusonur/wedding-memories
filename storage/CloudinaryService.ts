@@ -1,4 +1,4 @@
-import cloudinary from '../utils/cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { StorageService, UploadResult, VideoUploadData, PresignedUploadResponse, VideoMetadata } from './StorageService';
 import type { MediaProps } from '../utils/types';
@@ -33,7 +33,7 @@ export class CloudinaryService implements StorageService {
         : this.baseFolder;
 
       // Upload to Cloudinary with both folder structure AND context
-      const result = await cloudinary.v2.uploader.upload(dataURI, {
+      const result = await cloudinary.uploader.upload(dataURI, {
         folder,
         context: guestName ? { guest: guestName } : undefined,
         resource_type: file.type.startsWith('video/') ? 'video' : 'image',
@@ -72,7 +72,7 @@ export class CloudinaryService implements StorageService {
       }
 
       // Search for images with context
-      const searchResults = await cloudinary.v2.search
+      const searchResults = await cloudinary.search
         .expression(expression)
         .sort_by('created_at', 'desc')
         .max_results(400)
@@ -142,7 +142,7 @@ export class CloudinaryService implements StorageService {
     }
 
     try {
-      const result = await cloudinary.v2.uploader.upload(
+      const result = await cloudinary.uploader.upload(
         `data:${options.fileType};base64,${buffer.toString('base64')}`,
         {
           resource_type: 'video',
@@ -188,7 +188,7 @@ export class CloudinaryService implements StorageService {
       const publicId = publicIdWithExt.split('.')[0];
 
       // Get resource info from Cloudinary
-      const result = await cloudinary.v2.api.resource(publicId, { resource_type: 'video' });
+      const result = await cloudinary.api.resource(publicId, { resource_type: 'video' });
 
       return {
         width: result.width,

@@ -24,8 +24,17 @@ import {
   Play,
 } from 'lucide-react';
 import type { MediaProps } from '../utils/types';
-import { variants } from '../utils/animationVariants';
-import downloadPhoto from '../utils/downloadPhoto';
+// Inline animation variants
+const variants = {
+  enter: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: {
+    x: 0,
+    opacity: 0,
+  },
+};
 import { getOptimizedMediaProps } from '../utils/mediaOptimization';
 import { useMemo } from 'react';
 import { getDownloadUrl, getExternalUrl } from '../utils/imageUrl';
@@ -471,16 +480,19 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                           <ExternalLink className="h-4 w-4" />
                         </a>
                         <button
-                          onClick={() =>
-                            downloadPhoto(
-                              getDownloadUrl(
-                                currentItem.public_id,
-                                currentItem.resource_type,
-                                currentItem.format
-                              ),
-                              `${currentIndex + 1}.${currentItem.format}`
-                            )
-                          }
+                          onClick={() => {
+                            const downloadUrl = getDownloadUrl(
+                              currentItem.public_id,
+                              currentItem.resource_type,
+                              currentItem.format
+                            );
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.download = `wedding-photo-${currentIndex + 1}.${currentItem.format}`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
                           className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
                           title={t('modal.downloadFullsize')}
                         >
