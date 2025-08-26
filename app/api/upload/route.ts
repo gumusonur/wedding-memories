@@ -3,7 +3,6 @@ import { appConfig, StorageProvider } from '../../../config';
 import { storage } from '../../../storage';
 import { checkUploadRateLimit, createRateLimitHeaders } from '../../../utils/rateLimit';
 import type { ApiErrorResponse } from '../../../utils/types';
-import { HLSVideoProcessor } from '../../../services/HLSVideoProcessor';
 
 // Increase body size limit for file uploads to accommodate videos
 export const config = {
@@ -96,45 +95,6 @@ export async function POST(
     });
 
     const { file, guestName } = validateUploadRequest(formData);
-
-    const isVideo = file.type.startsWith('video/');
-    const isS3 = appConfig.storage === StorageProvider.S3;
-    
-    if (isVideo && isS3) {
-      const hlsProcessor = new HLSVideoProcessor();
-      const videoBuffer = Buffer.from(await file.arrayBuffer());
-      
-      const processingResult = await hlsProcessor.processVideoToHLS(
-        videoBuffer,
-        file.name,
-        {
-          guestName,
-          quality: 'medium',
-          segmentDuration: 6
-        }
-      );
-
-      const mediaData = {
-        id: Date.now(),
-        height: '480',
-        width: '720',
-        public_id: processingResult.originalPath,
-        format: 'mp4',
-        resource_type: 'video' as const,
-        guestName,
-        uploadDate: new Date().toISOString(),
-        url: processingResult.playlistUrl,
-        hlsPlaylistUrl: processingResult.playlistUrl,
-        hlsPath: processingResult.hlsPath,
-        videoId: processingResult.videoId,
-        duration: processingResult.duration,
-      };
-
-      return NextResponse.json(mediaData, { 
-        status: 201,
-        headers: createRateLimitHeaders(rateLimitResult),
-      });
-    }
 
     const uploadResult = await storage.upload(file, guestName);
 

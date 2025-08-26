@@ -350,19 +350,109 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', uploadFile.file);
-      formData.append('guestName', guestName);
+      // Check if it's a video file and use appropriate API
+      const isVideo = uploadFile.file.type.startsWith('video/');
+      let data;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      if (isVideo) {
+        if (appConfig.storage === StorageProvider.S3) {
+          // Use presigned URL for S3
+          // Step 1: Get presigned URL
+          const presignedRes = await fetch('/api/upload-video', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileName: uploadFile.file.name,
+              fileSize: uploadFile.file.size,
+              fileType: uploadFile.file.type,
+              guestName,
+            }),
+          });
 
-      const data = await res.json();
+          const presignedData = await presignedRes.json();
+          
+          if (!presignedRes.ok) {
+            throw new Error(presignedData.error || 'Failed to get upload URL');
+          }
 
-      if (res.ok) {
+          setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 30 } : f)));
+
+          // Step 2: Upload directly to S3
+          const uploadRes = await fetch(presignedData.data.uploadUrl, {
+            method: 'PUT',
+            body: uploadFile.file,
+            headers: {
+              'Content-Type': uploadFile.file.type,
+            },
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error('Failed to upload video file');
+          }
+
+          setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 80 } : f)));
+
+          // Step 3: Confirm upload completion
+          const confirmRes = await fetch('/api/upload-video', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              videoId: presignedData.data.videoId,
+              guestName,
+              fileName: uploadFile.file.name,
+              publicUrl: presignedData.data.publicUrl,
+            }),
+          });
+
+          data = await confirmRes.json();
+          
+          if (!confirmRes.ok) {
+            throw new Error(data.error || 'Failed to confirm upload');
+          }
+
+          // Use video data from confirmation response
+          data = data.data.video;
+        } else {
+          // Use FormData for Cloudinary (up to 100MB limit)
+          const formData = new FormData();
+          formData.append('file', uploadFile.file);
+          formData.append('guestName', guestName);
+
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          data = await res.json();
+          
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to upload video');
+          }
+        }
+      } else {
+        // Use regular upload API for images
+        const formData = new FormData();
+        formData.append('file', uploadFile.file);
+        formData.append('guestName', guestName);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to upload image');
+        }
+      }
+
+      // Success handling (data is already processed above for both image and video)
+      if (data) {
         setFiles((prev) =>
           prev.map((f) => (f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f))
         );
@@ -379,8 +469,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           height: data.height?.toString() || '480',
           width: data.width?.toString() || '720',
           // Include video-specific properties if they exist
-          hlsPlaylistUrl: data.hlsPlaylistUrl,
-          hlsPath: data.hlsPath,
           videoId: data.videoId,
           duration: data.duration,
         };
@@ -391,8 +479,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           title: t('success.mediaAddedSuccessfully'),
           description: t('success.mediaAddedDescription', { fileName: uploadFile.file.name }),
         });
-      } else {
-        throw new Error(data.error || t('errors.uploadFailed'));
       }
     } catch (error) {
       setFiles((prev) =>

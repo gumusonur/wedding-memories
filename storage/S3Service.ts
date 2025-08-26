@@ -1,18 +1,17 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { StorageService, UploadResult } from './StorageService';
+import { StorageService, UploadResult, VideoUploadData, PresignedUploadResponse, VideoMetadata } from './StorageService';
 import type { MediaProps } from '../utils/types';
 
 /**
  * S3/Wasabi implementation of the StorageService interface.
  * 
  * Stores wedding photos in S3-compatible storage with organized folder structure:
- * - wedding/{guestName}/filename (guest-specific organization)
+ * - {guestName}/filename (guest-specific organization)
  */
 export class S3Service implements StorageService {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
-  private readonly baseFolder = 'wedding';
 
   constructor() {
     // Validate required environment variables
@@ -62,13 +61,13 @@ export class S3Service implements StorageService {
       const fileExtension = file.name.split('.').pop() || 'jpg';
       const filename = `${timestamp}-${randomSuffix}.${fileExtension}`;
 
-      // Sanitize guest name for consistency (matches HLS processor and list logic)
+      // Sanitize guest name for consistency
       const sanitizedGuestName = guestName ? this.sanitizeGuestName(guestName) : undefined;
 
       // Determine S3 key (path)
       const key = sanitizedGuestName 
-        ? `${this.baseFolder}/${sanitizedGuestName}/${filename}`
-        : `${this.baseFolder}/${filename}`;
+        ? `${sanitizedGuestName}/${filename}`
+        : filename;
 
       // Upload to S3
       const command = new PutObjectCommand({
@@ -86,10 +85,11 @@ export class S3Service implements StorageService {
       await this.s3Client.send(command);
 
       // Return upload result with metadata
-      const fullUrl = this.getPublicUrl(key);
+      const fullUrl = await this.getPublicUrl(key);
+      console.log(`[DEBUG S3Service] upload() - Generated presigned URL: ${fullUrl.substring(0, 100)}...`);
       return {
         url: fullUrl,
-        public_id: key, // Use S3 key as public_id, not full URL
+        public_id: fullUrl, // Use presigned URL as public_id for frontend
         width: 720, // Default width for S3 images
         height: 480, // Default height for S3 images
         format: fileExtension,
@@ -103,7 +103,7 @@ export class S3Service implements StorageService {
   }
 
   /**
-   * Sanitize guest name for S3 path consistency (matches HLS processor logic)
+   * Sanitize guest name for S3 path consistency
    */
   private sanitizeGuestName(guestName: string): string {
     return guestName
@@ -126,8 +126,8 @@ export class S3Service implements StorageService {
       
       // Determine prefix for listing
       const prefix = sanitizedGuestName 
-        ? `${this.baseFolder}/${sanitizedGuestName}/`
-        : `${this.baseFolder}/`;
+        ? `${sanitizedGuestName}/`
+        : '';
 
       // List objects from S3
       const command = new ListObjectsV2Command({
@@ -143,81 +143,45 @@ export class S3Service implements StorageService {
       // Transform S3 objects to MediaProps format
       const mediaItems: MediaProps[] = [];
       if (response.Contents) {
-        response.Contents.forEach((object, index) => {
-          if (object.Key) {
-            // Skip HLS segment files (.ts) - but keep .m3u8 playlists for processing
-            if (object.Key.includes('/hls/') && object.Key.endsWith('.ts')) {
-              return;
-            }
-            
-            // Extract guest name from path
-            const pathParts = object.Key.split('/');
-            const extractedGuestName = pathParts.length > 2 ? pathParts[1] : 'Unknown Guest';
-            
-            // Extract filename and format
-            const filename = pathParts[pathParts.length - 1];
-            const format = filename.includes('.') ? filename.split('.').pop() || '' : 'jpg';
-            const resourceType = (format: string): 'image' | 'video' => {
-              const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-              const videoFormats = ['mp4', 'mov', 'avi', 'webm'];
-              if (imageFormats.includes(format.toLowerCase())) return 'image';
-              if (videoFormats.includes(format.toLowerCase())) return 'video';
-              return 'image';
-            };
+        const mediaPromises = response.Contents.map(async (object, index) => {
+          if (!object.Key) return null;
+          
+          // Extract guest name from path
+          const pathParts = object.Key.split('/');
+          const extractedGuestName = pathParts.length > 1 ? pathParts[0] : 'Unknown Guest';
+          
+          // Extract filename and format
+          const filename = pathParts[pathParts.length - 1];
+          const format = filename.includes('.') ? filename.split('.').pop() || '' : 'jpg';
+          const resourceType = (format: string): 'image' | 'video' => {
+            const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            const videoFormats = ['mp4', 'mov', 'avi', 'webm'];
+            if (imageFormats.includes(format.toLowerCase())) return 'image';
+            if (videoFormats.includes(format.toLowerCase())) return 'video';
+            return 'image';
+          };
 
-            const isVideo = resourceType(format) === 'video';
-            const isInOriginalsFolder = object.Key.includes('/originals/');
-            
-            // Skip original videos - they are only for external management
-            // Only show HLS playlists in the gallery
-            if (isVideo && isInOriginalsFolder) {
-              console.log(`[S3] Skipping original video (for external management): ${object.Key}`);
-              return;
-            }
-            
-            // For HLS playlists, create a proper media item
-            if (object.Key.endsWith('index.m3u8') && object.Key.includes('/hls/')) {
-              // Extract video ID and guest name from HLS path
-              // Path format: wedding/guest/hls/videoId/index.m3u8
-              const hlsPathParts = object.Key.split('/');
-              const videoId = hlsPathParts[hlsPathParts.length - 2]; // videoId is the parent folder
-              const guestNameFromPath = hlsPathParts[1];
-              
-              console.log(`[S3] Found HLS playlist: ${object.Key} (videoId: ${videoId})`);
-              
-              mediaItems.push({
-                id: index,
-                height: '480',
-                width: '720',
-                public_id: `wedding/${guestNameFromPath}/originals/${videoId}.mp4`, // Reference original for metadata
-                format: 'mp4',
-                resource_type: 'video',
-                guestName: guestName || guestNameFromPath,
-                uploadDate: object.LastModified?.toISOString(),
-                // HLS properties for video playback
-                hlsPlaylistUrl: `/api/s3-proxy/${object.Key}`,
-                hlsPath: `wedding/${guestNameFromPath}/hls/${videoId}`,
-                videoId,
-                duration: undefined // Could be extracted from metadata if needed
-              });
-              return;
-            }
-            
-            // For non-video files (images), process normally
-            if (!isVideo) {
-              mediaItems.push({
-                id: index,
-                height: '480',
-                width: '720',
-                public_id: object.Key,
-                format: format,
-                resource_type: resourceType(format),
-                guestName: guestName || extractedGuestName,
-                uploadDate: object.LastModified?.toISOString(),
-              });
-            }
-          }
+          const isVideo = resourceType(format) === 'video';
+          
+          // Generate presigned URL for this object
+          const presignedUrl = await this.getPublicUrl(object.Key);
+          console.log(`[DEBUG S3Service] list() - Generated presigned URL for ${object.Key}: ${presignedUrl.substring(0, 100)}...`);
+          
+          // Return media item with presigned URL
+          return {
+            id: index,
+            height: '480',
+            width: '720',
+            public_id: presignedUrl, // Use presigned URL as public_id
+            format: format,
+            resource_type: resourceType(format),
+            guestName: guestName || extractedGuestName,
+            uploadDate: object.LastModified?.toISOString(),
+          };
         });
+
+        const resolvedMediaItems = await Promise.all(mediaPromises);
+        mediaItems.push(...resolvedMediaItems.filter((item): item is MediaProps => item !== null));
       }
 
       // Sort by upload date in descending order
@@ -237,7 +201,7 @@ export class S3Service implements StorageService {
 
   /**
    * Uploads a buffer directly to S3 with specified key and content type.
-   * Used for HLS video processing.
+   * Used for video processing.
    * 
    * @param buffer - Buffer to upload
    * @param key - S3 key (path)
@@ -256,7 +220,7 @@ export class S3Service implements StorageService {
 
   /**
    * Generates a signed URL for private S3 objects.
-   * Used for HLS playlist and segment access.
+   * Used for media file access.
    * 
    * @param key - S3 object key
    * @param expiresIn - URL expiration time in seconds (default: 1 hour)
@@ -273,7 +237,7 @@ export class S3Service implements StorageService {
 
   /**
    * Gets metadata for an S3 object.
-   * Used to check if HLS files exist.
+   * Used to check if files exist.
    * 
    * @param key - S3 object key
    * @returns Object metadata
@@ -293,17 +257,128 @@ export class S3Service implements StorageService {
    * @param key - The S3 object key
    * @returns The public URL
    */
-  private getPublicUrl(key: string): string {
-    const endpoint = process.env.NEXT_PUBLIC_S3_ENDPOINT;
-    
-    if (endpoint) {
-      // Custom endpoint (Wasabi or other S3-compatible service)
-      const baseUrl = endpoint.replace(/\/$/, ''); // Remove trailing slash
-      return `${baseUrl}/${this.bucket}/${key}`;
-    } else {
-      // Standard AWS S3 URL
-      const region = process.env.AWS_REGION;
-      return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
+  /**
+   * Uploads a video file to S3 with metadata.
+   */
+  async uploadVideo(buffer: Buffer, options: VideoUploadData): Promise<UploadResult> {
+    const { fileName, guestName, videoId } = options;
+    const sanitizedGuestName = this.sanitizeGuestName(guestName);
+    const key = `${sanitizedGuestName}/videos/${videoId}.mp4`;
+
+    // Upload with basic metadata
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: 'video/mp4',
+      Metadata: {
+        originalFilename: fileName,
+        guestName: sanitizedGuestName,
+        videoId: videoId,
+        uploadDate: new Date().toISOString(),
+      },
+    });
+
+    await this.s3Client.send(command);
+
+    return {
+      url: await this.getPublicUrl(key),
+      public_id: key,
+      width: 720, // Will be updated when metadata is available
+      height: 480, // Will be updated when metadata is available
+      format: 'mp4',
+      resource_type: 'video',
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Generates a presigned URL for direct video upload.
+   */
+  async generateVideoUploadUrl(options: VideoUploadData): Promise<PresignedUploadResponse> {
+    const { guestName, videoId } = options;
+    const sanitizedGuestName = this.sanitizeGuestName(guestName);
+    const key = `${sanitizedGuestName}/videos/${videoId}.mp4`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: 'video/mp4',
+    });
+
+    const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour
+    const publicUrl = await this.getPublicUrl(key);
+
+    return {
+      uploadUrl,
+      publicUrl,
+    };
+  }
+
+  /**
+   * Gets video metadata from S3 object.
+   */
+  async getVideoMetadata(publicUrl: string): Promise<VideoMetadata> {
+    try {
+      // Extract S3 key from public URL
+      const urlParts = publicUrl.split('/');
+      const bucketIndex = urlParts.findIndex(part => part === this.bucket);
+      const key = urlParts.slice(bucketIndex + 1).join('/');
+
+      // Get object metadata from S3
+      const command = new HeadObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      // Parse metadata from S3 object metadata or use defaults
+      const width = response.Metadata?.width ? parseInt(response.Metadata.width) : 720;
+      const height = response.Metadata?.height ? parseInt(response.Metadata.height) : 480;
+      const duration = response.Metadata?.duration ? parseFloat(response.Metadata.duration) : undefined;
+      const format = key.split('.').pop() || 'mp4';
+
+      return {
+        width,
+        height,
+        duration,
+        format,
+      };
+    } catch (error) {
+      console.error('Error getting video metadata:', error);
+      // Return defaults if metadata extraction fails
+      return {
+        width: 720,
+        height: 480,
+        format: 'mp4',
+        duration: undefined,
+      };
+    }
+  }
+
+  private async getPublicUrl(key: string): Promise<string> {
+    // Generate presigned read URL for S3 objects (24 hour expiry)
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    try {
+      const presignedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 86400 }); // 24 hours
+      return presignedUrl;
+    } catch (error) {
+      console.error('Error generating presigned read URL:', error);
+      // Fallback to direct URL if presigned URL generation fails
+      const endpoint = process.env.NEXT_PUBLIC_S3_ENDPOINT;
+      
+      if (endpoint) {
+        const baseUrl = endpoint.replace(/\/$/, '');
+        return `${baseUrl}/${this.bucket}/${key}`;
+      } else {
+        const region = process.env.AWS_REGION;
+        return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
+      }
     }
   }
 }

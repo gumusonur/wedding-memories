@@ -27,7 +27,9 @@ export function getOptimizedMediaUrl(
   let url: string;
   
   if (appConfig.storage === StorageProvider.S3) {
-    url = getFullUrl(publicId, resourceType);
+    // For S3, return the presigned URL directly (publicId already contains the full presigned URL)
+    console.log(`[DEBUG] S3 getOptimizedMediaUrl - publicId: ${publicId.substring(0, 100)}...`);
+    url = publicId;
   } else {
     if (resourceType === 'video') {
       switch (quality) {
@@ -165,11 +167,11 @@ export function getOptimizedMediaProps(
     if (context === 'thumb') {
       // Generate a static image thumbnail for carousel display
       const thumbnailImageSrc = appConfig.storage === StorageProvider.S3 
-        ? getFullUrl(item.public_id, item.resource_type)
+        ? item.public_id // Use presigned URL directly for S3
         : (() => {
             // For Cloudinary, generate an image thumbnail from video
             const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-            if (!cloudName) return getFullUrl(item.public_id, item.resource_type);
+            if (!cloudName) return item.public_id;
             
             // Generate a still image from the video at 1 second mark
             const publicId = item.public_id.startsWith('http') ? item.public_id : item.public_id;
@@ -195,10 +197,10 @@ export function getOptimizedMediaProps(
     // For gallery and modal contexts, use video
     const posterUrl = undefined;
     
-    // For S3, always use full URL since we don't have quality transformations
+    // For S3, use presigned URL directly since we don't have quality transformations
     // For Cloudinary, use optimized quality based on context
     const videoSrc = appConfig.storage === StorageProvider.S3 
-      ? getFullUrl(item.public_id, item.resource_type)
+      ? item.public_id // Use presigned URL directly for S3
       : getOptimizedMediaUrl(item.public_id, item.format, item.resource_type, 
           context === 'gallery' ? 'medium' : 'full');
 
@@ -215,18 +217,20 @@ export function getOptimizedMediaProps(
       format: item.format as string,
       controls: context === 'modal', // Add controls for modal view
       context, // Pass context to component
-      // HLS-specific properties for Instagram-style playback
-      hlsPlaylistUrl: item.hlsPlaylistUrl,
-      hlsPath: item.hlsPath,
+      // Video-specific properties
       videoId: item.videoId,
       duration: item.duration,
       guestName: item.guestName,
     };
   }
 
-  // It's an image, use image optimization
+  // It's an image, use appropriate URL handling
+  const imageSrc = appConfig.storage === StorageProvider.S3 
+    ? item.public_id // Use presigned URL directly for S3
+    : getOptimizedMediaUrl(item.public_id, item.format, item.resource_type, quality);
+    
   return {
-    src: getOptimizedMediaUrl(item.public_id, item.format, item.resource_type, quality),
+    src: imageSrc,
     alt: `Wedding photo${item.guestName && item.guestName !== 'Unknown Guest' ? ` shared by ${item.guestName}` : ''}`,
     width: item.width,
     height: item.height,

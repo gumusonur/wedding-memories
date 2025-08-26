@@ -11,7 +11,6 @@ import { appConfig, StorageProvider } from '../config';
 import { useI18n } from './I18nProvider';
 import type { MediaProps } from '../utils/types';
 import { Play } from 'lucide-react';
-import { HLSVideoPlayer, getStoredVideoPosition } from './HLSVideoPlayer';
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -39,8 +38,6 @@ interface StorageAwareMediaProps extends Omit<MediaProps, 'id' | 'public_id'> {
   poster?: string;
   controls?: boolean;
   context?: 'gallery' | 'modal' | 'thumb';
-  hlsPlaylistUrl?: string;
-  hlsPath?: string;
   videoId?: string;
   duration?: number;
   guestName?: string;
@@ -66,8 +63,6 @@ export function StorageAwareMedia({
   poster,
   controls,
   context = 'gallery',
-  hlsPlaylistUrl,
-  hlsPath,
   videoId,
   duration,
   guestName,
@@ -186,52 +181,7 @@ export function StorageAwareMedia({
   };
 
   if (resource_type === 'video') {
-    // Use HLS player if HLS playlist URL is available (prioritize HLS streaming)
-    if (hlsPlaylistUrl) {
-      const mediaProps: MediaProps = {
-        id: Date.now(), // Temporary ID
-        height,
-        width,
-        public_id: src,
-        format: 'mp4',
-        resource_type: 'video',
-        hlsPlaylistUrl,
-        hlsPath,
-        videoId: videoId || 'unknown',
-        duration,
-        guestName: guestName || 'unknown',
-      };
-
-      return (
-        <div
-          className="relative group w-full h-full"
-          onMouseEnter={onMouseEnter}
-          tabIndex={tabIndex}
-          onKeyDown={onKeyDown}
-        >
-          <HLSVideoPlayer
-            media={mediaProps}
-            className={className}
-            style={style}
-            autoplay={context === 'gallery' && isMobile}
-            muted={context !== 'modal'}
-            controls={controls}
-            loop={context === 'gallery'}
-            context={context === 'gallery' ? 'feed' : context}
-            onClick={onClick}
-            onLoadedData={onLoad}
-            startTime={
-              context === 'modal'
-                ? getStoredVideoPosition(mediaProps.guestName!, mediaProps.videoId!)
-                : 0
-            }
-            playOnHover={context === 'gallery' && isDesktop}
-          />
-        </div>
-      );
-    }
-
-    // Fallback to regular video element
+    // Use regular video element
     return (
       <div
         className="relative group w-full h-full"

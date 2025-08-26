@@ -82,8 +82,8 @@ export class MediaUrlService {
       const mediaTypePath = resourceType === 'video' ? 'video' : 'image';
       return `https://res.cloudinary.com/${cloudName}/${mediaTypePath}/upload/q_100,fl_attachment/${publicId}.${format}`;
     } else {
-      // For S3, we need to use the proxy but with a download header
-      return MediaUrlService.getS3DownloadUrl(publicId);
+      // For S3, return the direct URL (S3 bucket should be configured for public access)
+      return MediaUrlService.getS3Url(publicId);
     }
   }
 
@@ -136,19 +136,27 @@ export class MediaUrlService {
 
     let transformations = [];
     
+    // Map named quality values to Cloudinary numeric values
+    const qualityMap: { [key: string]: string } = {
+      'medium': '80', 
+      'high': '90',
+      'low': '60'
+    };
+    const finalQuality = qualityMap[quality] || quality;
+    
     if (resourceType === 'video') {
       // Simplified video transformations
       if (width && height) {
         transformations.push(`c_scale,w_${width},h_${height}`);
       }
-      transformations.push(`q_${quality}`);
+      transformations.push(`q_${finalQuality}`);
       transformations.push('f_auto'); // Auto format
     } else {
       // Image transformations
       if (width && height) {
         transformations.push(`c_scale,w_${width},h_${height}`);
       }
-      transformations.push(`q_${quality}`);
+      transformations.push(`q_${finalQuality}`);
       transformations.push('f_auto');
     }
 
@@ -159,46 +167,41 @@ export class MediaUrlService {
   }
 
   /**
-   * Generates S3/Wasabi URL via proxy for reliable access.
+   * Generates S3 URL (presigned URLs are returned as-is).
+   * S3Service now returns presigned URLs in public_id, so we use them directly.
    */
   private static getS3Url(publicId: string): string {
-    // If publicId is already a full URL, extract the object key
-    let objectKey: string;
-    
+    // If publicId is already a full URL (presigned URL from S3Service), return it directly
     if (publicId.startsWith('http')) {
-      // Extract the object key from the full URL
-      const url = new URL(publicId);
-      const pathParts = url.pathname.split('/');
-      // Remove empty first element and bucket name to get the object key
-      objectKey = pathParts.slice(2).join('/');
-    } else {
-      objectKey = publicId;
+      return publicId;
     }
 
-    // Use our proxy API to serve the media
-    return `/api/s3-proxy/${objectKey}`;
-  }
-
-  /**
-   * Generates S3/Wasabi download URL via proxy with download headers.
-   */
-  private static getS3DownloadUrl(publicId: string): string {
-    // If publicId is already a full URL, extract the object key
-    let objectKey: string;
-    
-    if (publicId.startsWith('http')) {
-      // Extract the object key from the full URL
-      const url = new URL(publicId);
-      const pathParts = url.pathname.split('/');
-      // Remove empty first element and bucket name to get the object key
-      objectKey = pathParts.slice(2).join('/');
-    } else {
-      objectKey = publicId;
+    // Handle legacy s3-proxy URLs - convert them to direct URLs
+    if (publicId.startsWith('/api/s3-proxy/')) {
+      publicId = publicId.replace('/api/s3-proxy/', '');
     }
 
-    // Use our proxy API with download parameter
-    return `/api/s3-proxy/${objectKey}?download=true`;
+    // For S3 keys without full URLs, construct direct URL as fallback
+    // Note: This should rarely happen with new presigned URL system
+    const bucket = process.env.NEXT_PUBLIC_S3_BUCKET;
+    const endpoint = process.env.NEXT_PUBLIC_S3_ENDPOINT;
+    
+    if (!bucket) {
+      console.warn('S3 bucket not configured');
+      return publicId;
+    }
+
+    if (endpoint) {
+      // Custom endpoint (Wasabi or other S3-compatible service)
+      const baseUrl = endpoint.replace(/\/$/, ''); // Remove trailing slash
+      return `${baseUrl}/${bucket}/${publicId}`;
+    } else {
+      // Standard AWS S3 URL
+      const region = process.env.AWS_REGION;
+      return `https://${bucket}.s3.${region}.amazonaws.com/${publicId}`;
+    }
   }
+
 
   /**
    * Checks if the current storage provider supports media optimization.

@@ -21,11 +21,7 @@ export interface MediaProps {
   guestName?: string;
   /** ISO date string when the media was uploaded */
   uploadDate?: string;
-  /** HLS playlist URL for video streaming (videos only) */
-  hlsPlaylistUrl?: string;
-  /** S3 path to HLS directory (videos only) */
-  hlsPath?: string;
-  /** Unique video ID for HLS organization (videos only) */
+  /** Unique video ID (videos only) */
   videoId?: string;
   /** Video duration in seconds (videos only) */
   duration?: number;

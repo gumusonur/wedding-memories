@@ -1,6 +1,6 @@
 import cloudinary from '../utils/cloudinary';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
-import { StorageService, UploadResult } from './StorageService';
+import { StorageService, UploadResult, VideoUploadData, PresignedUploadResponse, VideoMetadata } from './StorageService';
 import type { MediaProps } from '../utils/types';
 
 /**
@@ -81,16 +81,24 @@ export class CloudinaryService implements StorageService {
 
       // Transform to ImageProps format
       const transformedMedia: MediaProps[] = searchResults.resources.map(
-        (resource: any, index: number) => ({
-          id: index,
-          height: resource.height?.toString() || '480',
-          width: resource.width?.toString() || '720',
-          public_id: resource.public_id,
-          format: resource.format,
-          resource_type: resource.resource_type, // Add resource_type
-          guestName: resource.context?.guest || guestName || 'Unknown Guest',
-          uploadDate: resource.created_at,
-        })
+        (resource: any, index: number) => {
+          console.log(`[DEBUG CloudinaryService] Resource ${index}: public_id="${resource.public_id}", context=${JSON.stringify(resource.context)}`);
+          
+          // Test direct Cloudinary URL
+          const testUrl = `https://res.cloudinary.com/dlegcbcvj/image/upload/${resource.public_id}`;
+          console.log(`[DEBUG CloudinaryService] Test URL: ${testUrl}`);
+          
+          return {
+            id: index,
+            height: resource.height?.toString() || '480',
+            width: resource.width?.toString() || '720',
+            public_id: resource.public_id,
+            format: resource.format,
+            resource_type: resource.resource_type, // Add resource_type
+            guestName: resource.context?.guest || guestName || 'Unknown Guest',
+            uploadDate: resource.created_at,
+          };
+        }
       );
 
       // Generate blur placeholders
@@ -119,6 +127,84 @@ export class CloudinaryService implements StorageService {
     } catch (error) {
       console.error('Failed to list photos from Cloudinary:', error);
       throw new Error('Failed to retrieve photos from Cloudinary');
+    }
+  }
+
+  /**
+   * Uploads a video file to Cloudinary.
+   * Note: Cloudinary has a 100MB limit for video uploads.
+   */
+  async uploadVideo(buffer: Buffer, options: VideoUploadData): Promise<UploadResult> {
+    const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+    
+    if (options.fileSize > MAX_VIDEO_SIZE) {
+      throw new Error(`Video file size (${Math.round(options.fileSize / 1024 / 1024)}MB) exceeds Cloudinary's 100MB limit. Please use a smaller file or switch to S3 storage.`);
+    }
+
+    try {
+      const result = await cloudinary.v2.uploader.upload(
+        `data:${options.fileType};base64,${buffer.toString('base64')}`,
+        {
+          resource_type: 'video',
+          folder: process.env.CLOUDINARY_FOLDER,
+          context: `guest=${options.guestName}`,
+          public_id: `${options.guestName}_${options.videoId}`,
+        }
+      );
+
+      return {
+        url: result.secure_url,
+        public_id: result.public_id,
+        width: result.width || 720,
+        height: result.height || 480,
+        format: result.format || 'mp4',
+        resource_type: 'video',
+        created_at: result.created_at,
+        duration: result.duration,
+      };
+    } catch (error) {
+      console.error('Failed to upload video to Cloudinary:', error);
+      throw new Error('Failed to upload video to Cloudinary');
+    }
+  }
+
+  /**
+   * Cloudinary doesn't support presigned URLs like S3.
+   * This method throws an error to indicate videos should be uploaded via uploadVideo method.
+   */
+  async generateVideoUploadUrl(options: VideoUploadData): Promise<PresignedUploadResponse> {
+    throw new Error('Cloudinary does not support presigned URLs. Use direct upload via uploadVideo method instead, or switch to S3 storage for presigned URL uploads.');
+  }
+
+  /**
+   * Gets video metadata from Cloudinary.
+   */
+  async getVideoMetadata(publicUrl: string): Promise<VideoMetadata> {
+    try {
+      // Extract public_id from Cloudinary URL
+      const urlParts = publicUrl.split('/');
+      const uploadIndex = urlParts.findIndex(part => part === 'upload');
+      const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+      const publicId = publicIdWithExt.split('.')[0];
+
+      // Get resource info from Cloudinary
+      const result = await cloudinary.v2.api.resource(publicId, { resource_type: 'video' });
+
+      return {
+        width: result.width,
+        height: result.height,
+        duration: result.duration,
+        format: result.format,
+      };
+    } catch (error) {
+      console.error('Error getting video metadata from Cloudinary:', error);
+      // Return defaults if metadata extraction fails
+      return {
+        width: 720,
+        height: 480,
+        format: 'mp4',
+        duration: undefined,
+      };
     }
   }
 }

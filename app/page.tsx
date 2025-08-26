@@ -1,16 +1,16 @@
-import cloudinary from '../utils/cloudinary';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { appConfig } from '../config';
 import type { MediaProps } from '../utils/types';
 import { ClientGalleryWrapper } from '@/components/ClientGalleryWrapper';
 import { MediaGallery } from '@/components/MediaGallery';
+import { storage } from '../storage';
 
 export const revalidate = 0;
 
 /**
- * Fetches wedding media from Cloudinary with metadata and blur placeholders for images.
+ * Fetches wedding media from the configured storage provider with metadata and blur placeholders for images.
  *
- * This function retrieves media from the configured Cloudinary folder,
+ * This function retrieves media from the configured storage provider (Cloudinary or S3),
  * transforms them into the application's MediaProps format, and generates
  * blur placeholders for smooth loading experiences for images.
  * 
@@ -18,46 +18,33 @@ export const revalidate = 0;
  * filtering only applies to client-side API calls.
  *
  * @returns Promise that resolves to an array of processed media data
- * @throws {Error} If Cloudinary API fails or environment variables are missing
+ * @throws {Error} If storage service fails or environment variables are missing
  */
 async function fetchWeddingMedia(): Promise<MediaProps[]> {
-  if (!process.env.CLOUDINARY_FOLDER) {
-    throw new Error('CLOUDINARY_FOLDER environment variable is required');
-  }
-
   try {
-    const searchResults = await cloudinary.v2.search
-      .expression(`folder:${process.env.CLOUDINARY_FOLDER}/*`)
-      .sort_by('created_at', 'desc')
-      .max_results(400)
-      .with_field('context')
-      .execute();
+    // Get all media without guest filtering for server-side rendering
+    const mediaItems = await storage.list();
+    
+    // Debug: Log first few items to see URL structure
+    console.log('[DEBUG] First 3 media items from storage:');
+    mediaItems.slice(0, 3).forEach((item, index) => {
+      console.log(`[${index}] public_id: ${item.public_id}`);
+      console.log(`[${index}] resource_type: ${item.resource_type}`);
+    });
 
-    const transformedMedia: MediaProps[] = searchResults.resources.map(
-      (cloudinaryResource: any, index: number) => ({
-        id: index,
-        height: cloudinaryResource.height?.toString() || '480',
-        width: cloudinaryResource.width?.toString() || '720',
-        public_id: cloudinaryResource.public_id,
-        format: cloudinaryResource.format || 'unknown',
-        resource_type: cloudinaryResource.resource_type,
-        guestName: cloudinaryResource.context?.guest || 'Unknown Guest',
-        uploadDate: cloudinaryResource.created_at,
-      })
-    );
-
-    const imageItems = transformedMedia.filter(item => item.resource_type === 'image');
-    const blurPlaceholderPromises = imageItems.map((image) => {
+    // Generate blur placeholders for images
+    const imageItems = mediaItems.filter((item: MediaProps) => item.resource_type === 'image');
+    const blurPlaceholderPromises = imageItems.map((image: MediaProps) => {
       return generateBlurPlaceholder(image);
     });
 
     const blurPlaceholders = await Promise.all(blurPlaceholderPromises);
 
-    imageItems.forEach((image, index) => {
+    imageItems.forEach((image: MediaProps, index: number) => {
       image.blurDataUrl = blurPlaceholders[index];
     });
 
-    return transformedMedia;
+    return mediaItems;
   } catch (error) {
     console.error('Failed to fetch wedding media:', error);
     throw new Error('Unable to load wedding media. Please try again later.');

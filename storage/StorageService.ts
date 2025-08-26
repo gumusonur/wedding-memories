@@ -11,6 +11,37 @@ export interface UploadResult {
   format: string;
   resource_type: 'image' | 'video';
   created_at: string;
+  duration?: number;
+}
+
+/**
+ * Video upload data for presigned URL generation.
+ */
+export interface VideoUploadData {
+  fileName: string;
+  guestName: string;
+  videoId: string;
+  fileType: string;
+  fileSize: number;
+}
+
+/**
+ * Presigned URL response with upload details.
+ */
+export interface PresignedUploadResponse {
+  uploadUrl: string;
+  publicUrl: string;
+  fields?: Record<string, string>;
+}
+
+/**
+ * Video metadata extracted from storage.
+ */
+export interface VideoMetadata {
+  width?: number;
+  height?: number;
+  duration?: number;
+  format?: string;
 }
 
 /**
@@ -36,4 +67,29 @@ export interface StorageService {
    * @returns Promise that resolves to an array of photo data with metadata
    */
   list(guestName?: string): Promise<MediaProps[]>;
+
+  /**
+   * Uploads a video file to the storage provider.
+   * 
+   * @param buffer - Video file buffer
+   * @param options - Video upload options
+   * @returns Promise that resolves to upload result with metadata
+   */
+  uploadVideo(buffer: Buffer, options: VideoUploadData): Promise<UploadResult>;
+
+  /**
+   * Generates a presigned URL for direct video upload to storage provider.
+   * 
+   * @param options - Video upload options
+   * @returns Promise that resolves to presigned upload response
+   */
+  generateVideoUploadUrl(options: VideoUploadData): Promise<PresignedUploadResponse>;
+
+  /**
+   * Gets video metadata from the storage provider.
+   * 
+   * @param publicUrl - Public URL of the video
+   * @returns Promise that resolves to video metadata
+   */
+  getVideoMetadata(publicUrl: string): Promise<VideoMetadata>;
 }

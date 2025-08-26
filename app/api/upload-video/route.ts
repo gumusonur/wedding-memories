@@ -1,48 +1,59 @@
 /**
- * Video Upload API Route with HLS Processing
+ * Video Upload API Route
  * 
- * Handles video uploads and generates HLS streams for Instagram-style fast playback.
- * Stores both original videos and HLS segments in organized S3 structure.
+ * For S3: Provides presigned URLs for direct video uploads.
+ * For Cloudinary: Provides error message about 100MB limit and presigned URL support.
+ * Avoids storing large video files on Vercel serverless functions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { HLSVideoProcessor } from '../../../services/HLSVideoProcessor';
 import { validateVideoFile } from '../../../utils/validation';
 import { storage } from '../../../storage';
-import type { MediaProps } from '../../../utils/types';
-
-// Increase body size limit for video uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '150mb',
-    },
-  },
-};
+import { appConfig, StorageProvider } from '../../../config';
+import { randomUUID } from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const video = formData.get('video') as File;
-    const guestName = formData.get('guestName') as string;
+    const body = await request.json();
+    const { fileName, fileSize, fileType, guestName } = body;
 
     // Validation
-    if (!video) {
+    if (!fileName || !fileSize || !fileType || !guestName?.trim()) {
       return NextResponse.json(
-        { error: 'No video file provided' },
+        { error: 'fileName, fileSize, fileType, and guestName are required' },
         { status: 400 }
       );
     }
 
-    if (!guestName?.trim()) {
+    // Create a mock file object for validation
+    const mockFile = {
+      name: fileName,
+      size: fileSize,
+      type: fileType
+    } as File;
+
+    // Check storage provider for video upload limitations
+    if (appConfig.storage === StorageProvider.Cloudinary) {
+      const MAX_CLOUDINARY_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+      if (fileSize > MAX_CLOUDINARY_VIDEO_SIZE) {
+        return NextResponse.json(
+          { 
+            error: `Video file size (${Math.round(fileSize / 1024 / 1024)}MB) exceeds Cloudinary's 100MB limit. Please use a smaller file or switch to S3 storage for larger videos.` 
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Guest name is required' },
+        { 
+          error: 'Cloudinary does not support presigned URLs for video uploads. Please use the regular upload endpoint (/api/upload) for videos up to 100MB, or switch to S3 storage for presigned URL uploads.' 
+        },
         { status: 400 }
       );
     }
 
     // Validate video file
-    const validationResult = await validateVideoFile(video);
+    const validationResult = await validateVideoFile(mockFile);
     if (!validationResult.isValid) {
       return NextResponse.json(
         { error: validationResult.error },
@@ -50,55 +61,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process video to HLS
-    const hlsProcessor = new HLSVideoProcessor();
-    const videoBuffer = Buffer.from(await video.arrayBuffer());
-    
-    const processingResult = await hlsProcessor.processVideoToHLS(
-      videoBuffer,
-      video.name,
-      {
-        guestName: guestName.trim(),
-        quality: 'medium', // Default to medium quality for balance
-        segmentDuration: 6 // 6-second segments for fast seeking
-      }
-    );
+    // Generate unique video ID and file path
+    const videoId = randomUUID();
+    const sanitizedGuestName = guestName.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
 
-    // Create MediaProps object for the processed video
-    const mediaItem: MediaProps = {
-      id: Date.now(), // Temporary ID, will be replaced by gallery
-      height: '480', // Default height, could be extracted from video metadata
-      width: '720',  // Default width, could be extracted from video metadata
-      public_id: processingResult.originalPath,
-      format: 'mp4',
-      resource_type: 'video',
-      guestName: guestName.trim(),
-      uploadDate: new Date().toISOString(),
-      // HLS-specific metadata
-      hlsPlaylistUrl: processingResult.playlistUrl,
-      hlsPath: processingResult.hlsPath,
-      videoId: processingResult.videoId,
-      duration: processingResult.duration
-    };
+    // Generate presigned URL for upload (S3 only)
+    const uploadData = await storage.generateVideoUploadUrl({
+      fileName,
+      guestName: sanitizedGuestName,
+      videoId,
+      fileType,
+      fileSize
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        video: mediaItem,
-        hls: {
-          playlistUrl: processingResult.playlistUrl,
-          segmentUrls: processingResult.segmentUrls,
-          videoId: processingResult.videoId,
-          duration: processingResult.duration
-        }
+        uploadUrl: uploadData.uploadUrl,
+        videoId,
+        publicUrl: uploadData.publicUrl,
+        fields: uploadData.fields || {}
       },
-      message: 'Video uploaded and processed successfully'
+      message: 'Presigned URL generated successfully'
     });
 
   } catch (error) {
-    console.error('Video upload error:', error);
+    console.error('Video presigned URL error:', error);
     
-    // Return appropriate error response
     if (error instanceof Error) {
       return NextResponse.json(
         { error: error.message },
@@ -107,44 +100,61 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error during video processing' },
+      { error: 'Internal server error during presigned URL generation' },
       { status: 500 }
     );
   }
 }
 
 /**
- * Get HLS playlist URL for an existing video
+ * Confirm video upload completion
  */
-export async function GET(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const guestName = searchParams.get('guestName');
-    const videoId = searchParams.get('videoId');
+    const body = await request.json();
+    const { videoId, guestName, fileName, publicUrl } = body;
 
-    if (!guestName || !videoId) {
+    if (!videoId || !guestName || !fileName || !publicUrl) {
       return NextResponse.json(
-        { error: 'guestName and videoId are required' },
+        { error: 'videoId, guestName, fileName, and publicUrl are required' },
         { status: 400 }
       );
     }
 
-    const hlsProcessor = new HLSVideoProcessor();
-    const playlistUrl = await hlsProcessor.getHLSPlaylistUrl(guestName, videoId);
+    // Get video metadata from storage
+    const videoMetadata = await storage.getVideoMetadata(publicUrl);
 
     return NextResponse.json({
       success: true,
       data: {
-        playlistUrl,
-        videoId,
-        guestName
-      }
+        video: {
+          id: Date.now(),
+          height: videoMetadata.height?.toString() || '480',
+          width: videoMetadata.width?.toString() || '720',
+          public_id: publicUrl, // Use presigned URL for S3 consistency
+          format: videoMetadata.format || 'mp4',
+          resource_type: 'video',
+          guestName: guestName.trim(),
+          uploadDate: new Date().toISOString(),
+          videoId,
+          duration: videoMetadata.duration
+        }
+      },
+      message: 'Video upload confirmed successfully'
     });
 
   } catch (error) {
-    console.error('Error getting HLS playlist:', error);
+    console.error('Video upload confirmation error:', error);
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Failed to get video playlist' },
+      { error: 'Internal server error during upload confirmation' },
       { status: 500 }
     );
   }
