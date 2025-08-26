@@ -143,10 +143,12 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
     return (
       <div className="text-center py-24 text-muted-foreground" role="status" aria-live="polite">
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">No media yet</h2>
+          <h2 className="text-2xl font-semibold">{t('gallery.noPhotos')}</h2>
           <p className="text-lg">
-            Be the first to share a memory from {appConfig.brideName} & {appConfig.groomName}&apos;s
-            special day!
+            {t('gallery.noPhotosDescription', { 
+              brideName: appConfig.brideName, 
+              groomName: appConfig.groomName 
+            })}
           </p>
         </div>
       </div>
@@ -167,7 +169,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
               className="animate-[spin_1.5s_ease-in-out_infinite] rounded-full h-5 w-5 border-2 border-current border-r-transparent"
               aria-hidden="true"
             />
-            <span className="text-sm font-medium">Loading new media...</span>
+            <span className="text-sm font-medium">{t('gallery.loadingPhotos')}</span>
           </div>
         </div>
       )}
@@ -175,7 +177,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
       <div
         className="columns-1 gap-5 sm:columns-2 xl:columns-3 2xl:columns-4"
         role="grid"
-        aria-label={`Wedding media gallery with ${media.length} items`}
+        aria-label={`${t('gallery.title')} ${t('gallery.photoCount', { count: media.length })}`}
       >
         {media.map((mediaItem, index) => (
           <div
@@ -186,7 +188,12 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
             onKeyDown={(e) => handleMediaKeyNavigation(e, index, openMediaModal)}
             onMouseEnter={() => prefetchMediaOnInteraction(mediaItem, 'full')}
             tabIndex={0}
-            aria-label={`Open media ${index + 1} ${mediaItem.guestName ? `shared by ${mediaItem.guestName}` : ''}`}
+            aria-label={mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest' 
+              ? t('gallery.openPhotoWithGuest', { 
+                  index: index + 1, 
+                  guestName: mediaItem.guestName 
+                })
+              : t('gallery.openPhoto', { index: index + 1 })}
           >
             <StorageAwareMedia
               {...getOptimizedMediaProps(mediaItem, 'gallery', { priority: index < 6 })}
