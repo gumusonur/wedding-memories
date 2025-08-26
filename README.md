@@ -6,15 +6,15 @@ A modern, accessible wedding memories gallery supporting **both photos and video
 
 ## ✨ Features
 
-- **Photo & Video Support** - unified handling for images and videos with optimized loading
-- **Progressive Video Loading** - smart caching, mobile optimization, and smooth playback
+- **Photo & Video Support** - unified handling for images and videos with direct HTML5 playback
+- **Unified Upload Architecture** - single endpoint handling all media with smart storage routing
 - **Responsive masonry gallery** with 1-4 columns based on screen size
 - **Modal viewing** with cached data, keyboard/swipe navigation, and pinch-to-zoom
 - **Multiple file upload** with drag & drop, batch selection, and progress tracking
 - **Real-time gallery updates** automatically refresh after uploads
 - **Guest welcome system** with name collection and persistent storage
 - **Multi-storage backend** - Cloudinary and S3/Wasabi with seamless switching
-- **S3 Proxy Architecture** - CORS-free media serving with request deduplication
+- **S3 Presigned URLs** - secure private bucket support with direct browser uploads
 - **Guest isolation mode** - filter media by guest when enabled in config
 - **Advanced validation** with real-time feedback and security-focused rules
 - **Mobile-optimized UX** with touch gestures and responsive design
@@ -28,7 +28,7 @@ A modern, accessible wedding memories gallery supporting **both photos and video
 - **Framework**: Next.js (latest) with App Router & TypeScript
 - **Styling**: Tailwind CSS v4 + shadcn/ui components  
 - **Media Storage**: Multi-provider (Cloudinary, S3/Wasabi)
-- **Video Handling**: Progressive loading with mobile optimization
+- **Video Handling**: Direct HTML5 playback with presigned URL uploads
 - **State Management**: Zustand with localStorage persistence
 - **UI Components**: Vaul drawers, Framer Motion animations
 - **Icons**: Lucide React icon library
@@ -106,15 +106,15 @@ export const appConfig = {
 - **Smart Media Handling**: Automatic optimization for Cloudinary, proxy-based serving for S3/Wasabi with progressive video loading
 - **Feature Parity**: Download, external links, and all functionality work identically across providers
 
-**S3/Wasabi Proxy Architecture**
-- **Secure Proxy**: `/api/s3-proxy/[...path]` endpoint serves S3 media via server-side AWS SDK
-- **Request Deduplication**: Prevents multiple simultaneous requests for same file with buffer-based caching
-- **CORS-Free**: Eliminates browser CORS issues by serving media from same origin
-- **Permission Independent**: Works with private S3 buckets without public access policies
-- **Stream Handling**: Proper ReadableStream consumption with buffer management
-- **Download Support**: Automatic Content-Disposition headers for file downloads
-- **High Performance**: 1-year cache headers with ETag support for optimal loading speed
-- **Error Handling**: Graceful fallbacks and proper HTTP status codes
+**S3/Wasabi Presigned URL Architecture**
+- **Unified Upload Endpoint**: `/api/upload` handles all media with smart routing based on storage provider
+- **Direct Browser Uploads**: Large files upload directly to S3, bypassing Vercel's 10MB limit
+- **Private Bucket Support**: Full support for private S3 buckets via presigned URLs
+- **Secure Access**: Presigned read URLs (24h expiry) and write URLs (1h expiry)
+- **Request Type Detection**: JSON metadata vs FormData automatically detected
+- **Storage Agnostic**: Frontend code adapts automatically to configured storage provider
+- **No 413 Errors**: Video files >10MB bypass server entirely for S3 uploads
+- **Maintains Features**: All Cloudinary optimizations and S3 uploads work seamlessly
 
 **Guest Isolation Mode**
 - When `guestIsolation: true`, each guest only sees photos they uploaded
@@ -127,16 +127,15 @@ export const appConfig = {
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
 │   │   ├── photos/        # Photo listing endpoint
-│   │   ├── upload/        # Photo upload endpoint
-│   │   └── s3-proxy/      # S3 image proxy for CORS-free serving
+│   │   └── upload/        # Unified media upload endpoint
 │   ├── page.tsx           # Main gallery page with server components
 │   └── loading.tsx        # Global transparent loading UI
 ├── components/            # React components
 │   ├── ui/               # shadcn/ui components (Button, Drawer, etc.)
 │   ├── MediaGallery.tsx  # Masonry grid with modal integration for photos/videos
-│   ├── StorageAwareMedia.tsx # Storage-agnostic media rendering (images/videos)
+│   ├── StorageAwareMedia.tsx # Storage-agnostic media rendering with HTML5 video
 │   ├── MediaModal.tsx    # Modal with pinch-to-zoom and gesture support
-│   ├── Upload.tsx        # Media upload with validation and progress tracking
+│   ├── Upload.tsx        # Unified media upload with presigned URL support
 │   ├── AppLoader.tsx     # Startup loader with couple names
 │   └── WelcomeDialog.tsx # Guest name collection
 ├── store/                # Zustand state management
@@ -144,7 +143,7 @@ export const appConfig = {
 ├── storage/              # Storage abstraction layer
 │   ├── StorageService.ts # Storage interface definition
 │   ├── CloudinaryService.ts # Cloudinary implementation with blur placeholders
-│   ├── S3Service.ts      # S3/Wasabi implementation with proxy support
+│   ├── S3Service.ts      # S3/Wasabi implementation with presigned URLs
 │   └── index.ts          # Provider selection and export
 ├── utils/                # Utilities and helpers
 │   ├── types.ts          # TypeScript interfaces for media data
