@@ -29,6 +29,7 @@ import downloadPhoto from '../utils/downloadPhoto';
 import { getOptimizedMediaProps } from '../utils/mediaOptimization';
 import { useMemo } from 'react';
 import { getDownloadUrl, getExternalUrl } from '../utils/imageUrl';
+import { useI18n } from './I18nProvider';
 
 interface MediaModalProps {
   items: MediaProps[];
@@ -41,6 +42,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [direction, setDirection] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const { t } = useI18n();
 
   // Zoom state
   const [zoom, setZoom] = useState(1);
@@ -445,7 +447,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                       <button
                         onClick={onClose}
                         className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
-                        title="Close modal (Esc)"
+                        title={t('modal.closeModal')}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -463,7 +465,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                           )}
                           className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
                           target="_blank"
-                          title="Open fullsize version"
+                          title={t('modal.openFullsize')}
                           rel="noreferrer"
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -480,7 +482,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                             )
                           }
                           className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
-                          title="Download fullsize version"
+                          title={t('modal.downloadFullsize')}
                         >
                           <Download className="h-4 w-4" />
                         </button>
@@ -492,7 +494,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                             onClick={zoomOut}
                             disabled={zoom <= 0.5}
                             className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50"
-                            title="Zoom out (-)"
+                            title={t('modal.zoomOut')}
                           >
                             <ZoomOut className="h-4 w-4" />
                           </button>
@@ -503,7 +505,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                             onClick={zoomIn}
                             disabled={zoom >= 5}
                             className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50"
-                            title="Zoom in (+)"
+                            title={t('modal.zoomIn')}
                           >
                             <ZoomIn className="h-4 w-4" />
                           </button>
@@ -511,7 +513,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                             <button
                               onClick={resetZoom}
                               className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white ml-0.5"
-                              title="Reset zoom (0)"
+                              title={t('modal.resetZoom')}
                             >
                               <RotateCcw className="h-4 w-4" />
                             </button>
@@ -525,7 +527,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                     <button
                       onClick={() => changeMediaIndex(currentIndex - 1)}
                       className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
-                      title="Previous media"
+                      title={t('modal.previousMedia')}
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
@@ -538,7 +540,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                       <button
                         onClick={() => changeMediaIndex(currentIndex + 1)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
-                        title="Next media"
+                        title={t('modal.nextMedia')}
                       >
                         <ChevronRight className="h-6 w-6" />
                       </button>

@@ -5,7 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { appConfig } from '../config';
 import { Upload } from './Upload';
 import { ModeToggle } from './ModeToggle';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { useGuestName, useMediaModalOpen } from '../store/useAppStore';
+import { useI18n } from './I18nProvider';
 import { WelcomeDialog } from './WelcomeDialog';
 
 interface ClientGalleryWrapperProps {
@@ -16,6 +18,7 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
   // Zustand store hooks
   const guestName = useGuestName();
   const isMediaModalOpen = useMediaModalOpen();
+  const { t } = useI18n();
 
   const searchParams = useSearchParams();
   const photoId = searchParams.get('photoId');
@@ -31,9 +34,10 @@ export function ClientGalleryWrapper({ children }: ClientGalleryWrapperProps) {
               <span className="text-muted-foreground mx-1 sm:mx-2 font-light">&</span>
               <span className="text-primary font-medium">{appConfig.groomName}</span>
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground font-light">Wedding Memories</p>
+            <p className="text-xs sm:text-sm text-muted-foreground font-light">{t('gallery.title')}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <LanguageSwitcher variant="minimal" />
             <ModeToggle />
           </div>
         </header>

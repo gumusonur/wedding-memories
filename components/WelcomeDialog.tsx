@@ -15,12 +15,14 @@ import {
 } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useGuestName, useSetGuestName, useHasHydrated } from '../store/useAppStore';
+import { useI18n } from './I18nProvider';
 
 export function WelcomeDialog() {
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
   const hasHydrated = useHasHydrated();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const [name, setName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -38,8 +40,8 @@ export function WelcomeDialog() {
     if (!isNameValid || !name.trim()) {
       toast({
         variant: 'destructive',
-        title: 'Name required',
-        description: 'Please enter a valid name to continue.',
+        title: t('errors.nameRequired'),
+        description: t('errors.nameRequiredDescription'),
       });
       return;
     }
@@ -49,15 +51,15 @@ export function WelcomeDialog() {
       setGuestName(sanitizedName);
       setIsDialogOpen(false); // Close dialog on successful submission
       toast({
-        title: 'Welcome!',
-        description: `Nice to meet you, ${sanitizedName}! You can now upload and view photos.`,
+        title: t('success.welcome'),
+        description: t('success.welcomeDescription', { name: sanitizedName }),
       });
     } catch (error) {
       // This shouldn't happen if validation is working correctly in GuestNameInput
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: error instanceof Error ? error.message : 'Please check your name.',
+        title: t('errors.validationError'),
+        description: error instanceof Error ? error.message : t('errors.validationErrorDescription'),
       });
     }
   };
@@ -78,18 +80,14 @@ export function WelcomeDialog() {
       >
         <DialogHeader className="text-center space-y-3">
           <DialogTitle className="text-xl font-serif font-light">
-            Welcome to our Wedding Gallery!
+            {t('welcome.title')}
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Hi! You&apos;re viewing{' '}
-            <span className="font-medium text-primary">
-              {appConfig.brideName}
-            </span>{' '}
-            &{' '}
-            <span className="font-medium text-primary">
-              {appConfig.groomName}
-            </span>
-            &apos;s wedding memories. Please share your name so we can credit any photos you add.
+            {t('welcome.description', {
+              brideName: appConfig.brideName,
+              groomName: appConfig.groomName,
+              interpolation: { escapeValue: false }
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -98,7 +96,7 @@ export function WelcomeDialog() {
             value={name}
             onChange={setName}
             onValidationChange={handleValidationChange}
-            placeholder="Your name"
+            placeholder={t('welcome.placeholder')}
             className="text-center text-lg h-12 bg-muted/50 border-muted"
             autoFocus
             onKeyDown={(e) => {
@@ -117,13 +115,13 @@ export function WelcomeDialog() {
               className="w-full h-11 text-base"
               disabled={!isNameValid}
             >
-              View Wedding Gallery
+              {t('welcome.button')}
             </Button>
           </DialogFooter>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          We&apos;ll remember your name for future visits
+          {t('welcome.rememberName')}
         </p>
       </DialogContent>
     </Dialog>

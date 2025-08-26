@@ -56,6 +56,7 @@ import {
 
 import type { UploadFile, MediaProps } from '../utils/types';
 import { formatFileSize, getCompressionInfo } from '../utils/clientUtils';
+import { useI18n } from './I18nProvider';
 
 interface UploadProps {
   currentGuestName?: string;
@@ -65,6 +66,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
   const addMedia = useAddMedia();
+  const { t } = useI18n();
 
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -200,8 +202,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
         toast({
           variant: 'destructive',
-          title: 'Invalid file type',
-          description: `${file.name} is not a supported format. Please select ${supportedFormats} files.`,
+          title: t('errors.invalidFileType', { fileName: file.name, supportedFormats }),
         });
         return false;
       }
@@ -242,8 +243,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         console.error(`Failed to process file ${file.name}:`, error);
         toast({
           variant: 'destructive',
-          title: 'File processing error',
-          description: `Failed to process ${file.name}. Please try again.`,
+          title: t('errors.fileProcessingError'),
+          description: t('errors.fileProcessingErrorDescription', { fileName: file.name }),
         });
       }
     }
@@ -252,8 +253,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     if (duplicateFiles.length > 0) {
       toast({
         variant: 'destructive',
-        title: 'Duplicate files detected',
-        description: `${duplicateFiles.length} file${duplicateFiles.length > 1 ? 's' : ''} already selected: ${duplicateFiles.slice(0, 2).join(', ')}${duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : ''}`,
+        title: t('errors.duplicateFiles'),
+        description: t('errors.duplicateFilesDescription', { 
+          count: duplicateFiles.length,
+          fileNames: duplicateFiles.slice(0, 2).join(', ') + (duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : '')
+        }),
       });
     }
 
@@ -262,13 +266,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
       if (duplicateFiles.length === 0) {
         toast({
-          title: 'Files added',
-          description: `${newFiles.length} file${newFiles.length > 1 ? 's' : ''} ready to add`,
+          title: t('success.filesAdded'),
+          description: t('success.filesAddedDescription', { count: newFiles.length }),
         });
       } else {
         toast({
-          title: 'New files added',
-          description: `${newFiles.length} new file${newFiles.length > 1 ? 's' : ''} added (${duplicateFiles.length} duplicate${duplicateFiles.length > 1 ? 's' : ''} skipped)`,
+          title: t('success.newFilesAdded'),
+          description: t('success.newFilesAddedDescription', { 
+            count: newFiles.length,
+            duplicateCount: duplicateFiles.length 
+          }),
         });
       }
     }
@@ -322,8 +329,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setIsSelectionMode(false);
 
     toast({
-      title: 'Files removed',
-      description: `${selectedFiles.size} file${selectedFiles.size > 1 ? 's' : ''} removed from the list.`,
+      title: t('success.filesRemoved'),
+      description: t('success.filesRemovedDescription', { count: selectedFiles.size }),
     });
   };
 
@@ -381,11 +388,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         addMedia(newMedia);
 
         toast({
-          title: 'Media added successfully!',
-          description: `${uploadFile.file.name} has been added to the gallery.`,
+          title: t('success.mediaAddedSuccessfully'),
+          description: t('success.mediaAddedDescription', { fileName: uploadFile.file.name }),
         });
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || t('errors.uploadFailed'));
       }
     } catch (error) {
       setFiles((prev) =>
@@ -394,15 +401,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             ? {
                 ...f,
                 status: 'error',
-                error: error instanceof Error ? error.message : 'Upload failed',
+                error: error instanceof Error ? error.message : t('errors.uploadFailed'),
               }
             : f
         )
       );
       toast({
         variant: 'destructive',
-        title: 'Failed to add media',
-        description: `Failed to add ${uploadFile.file.name}`,
+        title: t('errors.uploadFailed'),
+        description: t('errors.uploadFailedDescription', { fileName: uploadFile.file.name }),
       });
     }
   };
@@ -412,8 +419,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     if (!currentName) {
       toast({
         variant: 'destructive',
-        title: 'Name required',
-        description: 'Please enter your name before adding photos.',
+        title: t('errors.nameRequired'),
+        description: t('errors.nameRequiredDescription'),
       });
       return;
     }
@@ -453,8 +460,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setIsUpdatingName(false);
 
     toast({
-      title: 'Name updated',
-      description: `Your name has been changed to ${sanitizedName}`,
+      title: t('success.nameUpdated'),
+      description: t('success.nameUpdatedDescription', { name: sanitizedName }),
     });
   };
 
@@ -495,11 +502,10 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
           <div className="flex items-center justify-center gap-2 text-green-700 font-medium mb-2">
             <Check className="h-5 w-5" />
-            Files Successfully Added!
+            {t('upload.filesSuccessfullyAdded')}
           </div>
           <p className="text-sm text-green-600">
-            {successCount} file{successCount !== 1 ? 's' : ''} have been added to the wedding
-            gallery. Use the &ldquo;View Gallery&rdquo; button below to see your files.
+            {t('upload.filesAddedToGallery', { count: successCount })}
           </p>
         </div>
       )}
@@ -555,13 +561,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 <div>
                   <p className="text-sm font-medium">
                     {appConfig.storage === StorageProvider.S3
-                      ? 'Choose photos/videos or drag & drop'
-                      : 'Choose photos or drag & drop'}
+                      ? t('upload.chooseOrDragVideo')
+                      : t('upload.chooseOrDrag')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {appConfig.storage === StorageProvider.S3
-                      ? 'JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM • No size limit'
-                      : 'JPG, JPEG, PNG, GIF, WebP • Multiple files supported'}
+                      ? t('upload.supportedFormatsWithVideo')
+                      : t('upload.supportedFormats')}
                   </p>
                 </div>
               </div>
@@ -575,8 +581,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                       <UploadIcon className="h-4 w-4 text-primary" />
                       <h4 className="font-medium text-sm">
                         {isSelectionMode
-                          ? `Managing ${files.length} Files`
-                          : `Selected Files (${files.length})`}
+                          ? t('upload.managingFiles', { count: files.length })
+                          : t('upload.selectedFiles', { count: files.length })}
                       </h4>
                     </div>
                     <div className="flex items-center gap-2 relative z-20">
@@ -587,11 +593,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                           onClick={clearCompleted}
                           className="h-7 px-3 text-xs relative z-20"
                         >
-                          Clear Completed
+                          {t('upload.clearCompleted')}
                         </Button>
                       )}
                       {!isSelectionMode && (
-                        <p className="text-xs text-muted-foreground">Drop more files here</p>
+                        <p className="text-xs text-muted-foreground">{t('upload.dropMoreFiles')}</p>
                       )}
                     </div>
                   </div>
@@ -614,7 +620,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                             ) : (
                               <Square className="h-4 w-4" />
                             )}
-                            <span>{allPendingSelected ? 'Deselect All' : 'Select All'}</span>
+                            <span>{allPendingSelected ? t('upload.deselectAll') : t('upload.selectAll')}</span>
                           </Button>
 
                           {selectedFiles.size > 0 && (
@@ -634,8 +640,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                               className="h-8 flex items-center gap-2 flex-1"
                             >
                               <Trash className="h-4 w-4" />
-                              <span className="hidden xs:inline">Remove {selectedFiles.size}</span>
-                              <span className="xs:hidden">Remove</span>
+                              <span className="hidden xs:inline">{t('upload.removeSelected', { count: selectedFiles.size })}</span>
+                              <span className="xs:hidden">{t('upload.remove')}</span>
                             </Button>
                           )}
                           <Button
@@ -644,7 +650,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                             onClick={toggleSelectionMode}
                             className="h-8 px-4"
                           >
-                            Done
+                            {t('upload.done')}
                           </Button>
                         </div>
                       </div>
@@ -661,7 +667,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         className="h-8 flex items-center gap-2 text-sm relative z-20"
                       >
                         <CheckSquare className="h-4 w-4" />
-                        Select Multiple Files
+                        {t('upload.selectMultiple')}
                       </Button>
                     </div>
                   )}
@@ -817,13 +823,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                       >
                         <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
                           <Plus className="w-6 h-6" />
-                          <span className="text-xs font-medium">Add More</span>
+                          <span className="text-xs font-medium">{t('upload.addMore')}</span>
                         </div>
                       </div>
 
                       {/* Compact info area to match other items */}
                       <div className="mt-1">
-                        <div className="text-xs text-muted-foreground text-center">Photos</div>
+                        <div className="text-xs text-muted-foreground text-center">{t('upload.photos')}</div>
                       </div>
                     </div>
                   )}
@@ -838,18 +844,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove File</AlertDialogTitle>
+            <AlertDialogTitle>{t('confirmDialog.removeFile')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this file from the list? This action cannot be undone.
+              {t('confirmDialog.removeFileDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('upload.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => fileToDelete && removeFile(fileToDelete)}
               className="bg-red-600 hover:bg-red-700"
             >
-              Remove
+              {t('upload.remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -871,8 +877,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                    md:h-12 md:px-6 md:py-3 md:rounded-lg md:gap-2 md:text-sm md:font-medium"
       >
         <Camera className="h-5 w-5 md:h-5 md:w-5" />
-        <span className="hidden sm:inline">Add Files</span>
-        <span className="sm:hidden">Add</span>
+        <span className="hidden sm:inline">{t('upload.addFiles')}</span>
+        <span className="sm:hidden">{t('upload.addFiles')}</span>
       </Button>
     );
   });
@@ -889,15 +895,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <DialogTitle>Share Wedding Memories</DialogTitle>
+                  <DialogTitle>{t('upload.title')}</DialogTitle>
                   <DialogDescription>
-                    Select files to add to {appConfig.brideName} & {appConfig.groomName}&apos;s
-                    wedding gallery
+                    {t('upload.description', {
+                      brideName: appConfig.brideName,
+                      groomName: appConfig.groomName,
+                      interpolation: { escapeValue: false }
+                    })}
                   </DialogDescription>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Adding as:</span>
-                  <span className="font-medium">{guestName || 'Not set'}</span>
+                  <span className="text-muted-foreground">{t('upload.addingAs')}</span>
+                  <span className="font-medium">{guestName || t('upload.notSet')}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -907,7 +916,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                     className="h-7 px-2 text-xs"
                   >
                     <Edit className="w-3 h-3 mr-1" />
-                    Edit
+                    {t('nameDialog.edit')}
                   </Button>
                 </div>
               </div>
@@ -920,25 +929,25 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 // Show "View Gallery" and "Close" when uploads are complete
                 <div className="grid grid-cols-2 gap-2 w-full">
                   <Button variant="outline" onClick={() => setIsOpen(false)}>
-                    Close
+                    {t('upload.close')}
                   </Button>
                   <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
-                    View Gallery ({successCount} added)
+                    {t('upload.viewGallery', { count: successCount })}
                   </Button>
                 </div>
               ) : (
                 // Show standard upload interface
                 <div className="grid grid-cols-2 gap-2 w-full">
                   <Button variant="outline" onClick={() => setIsOpen(false)}>
-                    Close
+                    {t('upload.close')}
                   </Button>
                   <Button
                     onClick={handleUploadAll}
                     disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
                   >
                     {isUploading
-                      ? `Adding... (${uploadingCount})`
-                      : `Add ${pendingCount} File${pendingCount !== 1 ? 's' : ''}`}
+                      ? t('upload.adding', { count: uploadingCount })
+                      : t('upload.addCount', { count: pendingCount })}
                   </Button>
                 </div>
               )}
@@ -963,9 +972,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Change Your Name</DialogTitle>
+              <DialogTitle>{t('nameDialog.title')}</DialogTitle>
               <DialogDescription>
-                Update the name that will be associated with your uploaded files.
+                {t('nameDialog.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -973,7 +982,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 <Input
                   ref={nameInputRef}
                   type="text"
-                  placeholder="Enter your name"
+                  placeholder={t('nameDialog.placeholder')}
                   value={currentNameValue}
                   autoFocus
                   disabled={isUpdatingName}
@@ -1014,14 +1023,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 className="w-full sm:w-auto order-2 sm:order-1"
                 disabled={isUpdatingName}
               >
-                Cancel
+                {t('upload.cancel')}
               </Button>
               <Button
                 onClick={handleNameChange}
                 className="w-full sm:w-auto order-1 sm:order-2"
                 disabled={isUpdatingName || !!nameError}
               >
-                {isUpdatingName ? 'Updating...' : 'Update Name'}
+                {isUpdatingName ? t('nameDialog.updating') : t('nameDialog.updateName')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1040,10 +1049,13 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         <DrawerContent className="max-h-[80vh]">
           <DrawerHeader>
             <div className="space-y-2">
-              <DrawerTitle>Share Wedding Memories</DrawerTitle>
+              <DrawerTitle>{t('upload.title')}</DrawerTitle>
               <DrawerDescription>
-                Select files to add to {appConfig.brideName} & {appConfig.groomName}&apos;s wedding
-                gallery
+                {t('upload.description', {
+                  brideName: appConfig.brideName,
+                  groomName: appConfig.groomName,
+                  interpolation: { escapeValue: false }
+                })}
               </DrawerDescription>
               <div
                 className="pt-2 border-t cursor-pointer"
@@ -1053,8 +1065,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               >
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Adding files as:</span>
-                    <span className="font-medium text-foreground">{guestName || 'Not set'}</span>
+                    <span className="text-xs text-muted-foreground">{t('upload.addingAs')}</span>
+                    <span className="font-medium text-foreground">{guestName || t('upload.notSet')}</span>
                   </div>
                   <Edit className="w-4 h-4 text-muted-foreground" />
                 </div>
@@ -1070,11 +1082,11 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               <div className="grid grid-cols-2 gap-2">
                 <DrawerClose asChild>
                   <Button variant="outline" className="w-full">
-                    Close
+                    {t('upload.close')}
                   </Button>
                 </DrawerClose>
                 <Button onClick={handleViewGallery} className="bg-green-600 hover:bg-green-700">
-                  View Gallery ({successCount} added)
+                  {t('upload.viewGallery', { count: successCount })}
                 </Button>
               </div>
             ) : (
@@ -1082,7 +1094,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               <div className="grid grid-cols-2 gap-2">
                 <DrawerClose asChild>
                   <Button variant="outline" className="w-full">
-                    Close
+                    {t('upload.close')}
                   </Button>
                 </DrawerClose>
                 <Button
@@ -1090,8 +1102,8 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   disabled={!hasFiles || pendingCount === 0 || isUploading || !guestName.trim()}
                 >
                   {isUploading
-                    ? `Adding... (${uploadingCount})`
-                    : `Add ${pendingCount} File${pendingCount !== 1 ? 's' : ''}`}
+                    ? t('upload.adding', { count: uploadingCount })
+                    : t('upload.addCount', { count: pendingCount })}
                 </Button>
               </div>
             )}
@@ -1116,9 +1128,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Change Your Name</DialogTitle>
+            <DialogTitle>{t('nameDialog.title')}</DialogTitle>
             <DialogDescription>
-              Update the name that will be associated with your photos.
+              {t('nameDialog.descriptionMobile')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1126,7 +1138,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               <Input
                 ref={nameInputRef}
                 type="text"
-                placeholder="Enter your name"
+                placeholder={t('nameDialog.placeholder')}
                 value={currentNameValue}
                 autoFocus
                 disabled={isUpdatingName}
@@ -1167,14 +1179,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
               className="w-full sm:w-auto order-2 sm:order-1"
               disabled={isUpdatingName}
             >
-              Cancel
+              {t('upload.cancel')}
             </Button>
             <Button
               onClick={handleNameChange}
               className="w-full sm:w-auto order-1 sm:order-2"
               disabled={isUpdatingName || !!nameError}
             >
-              {isUpdatingName ? 'Updating...' : 'Update Name'}
+              {isUpdatingName ? t('nameDialog.updating') : t('nameDialog.updateName')}
             </Button>
           </DialogFooter>
         </DialogContent>

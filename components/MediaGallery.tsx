@@ -19,6 +19,7 @@ import {
   useRefreshMedia,
   useGuestName,
 } from '../store/useAppStore';
+import { useI18n } from './I18nProvider';
 
 interface MediaGalleryProps {
   initialMedia: MediaProps[];
@@ -73,6 +74,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
   const refresh = useRefreshMedia();
   const guestName = useGuestName();
   const previousGuestName = useRef<string | null>(null);
+  const { t, language } = useI18n();
 
   useEffect(() => {
     if (initialMedia.length > 0 && media.length === 0) {
@@ -158,7 +160,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
           className="text-center py-8 text-muted-foreground"
           role="status"
           aria-live="polite"
-          aria-label="Loading new media"
+          aria-label={t('accessibility.loadingNewMedia')}
         >
           <div className="flex items-center justify-center gap-3">
             <div
@@ -198,10 +200,10 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
               >
                 <div className="text-white text-xs font-medium p-2 text-center">
                   {mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest' && (
-                    <p>Shared by {mediaItem.guestName}</p>
+                    <p>{t('gallery.sharedBy', { name: mediaItem.guestName })}</p>
                   )}
                   {mediaItem.uploadDate && (
-                    <p className="text-white/80">{formatUploadDate(mediaItem.uploadDate)}</p>
+                    <p className="text-white/80">{formatUploadDate(mediaItem.uploadDate, language)}</p>
                   )}
                 </div>
               </div>
@@ -211,7 +213,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
       </div>
 
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        Gallery last updated: {lastRefreshTime.toLocaleTimeString()}
+        {t('accessibility.galleryUpdated', { time: lastRefreshTime.toLocaleTimeString(language) })}
       </div>
 
       <MediaModal

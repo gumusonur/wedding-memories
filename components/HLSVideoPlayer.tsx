@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { useI18n } from './I18nProvider';
 import Hls from 'hls.js';
 import type { MediaProps } from '../utils/types';
 
@@ -56,6 +57,7 @@ export function HLSVideoPlayer({
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { t } = useI18n();
   const [isMuted, setIsMuted] = useState(muted);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -95,13 +97,13 @@ export function HLSVideoPlayer({
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS Error:', data);
-        setError('Video playback error');
+        setError(t('video.playbackError'));
         setIsLoading(false);
       });
 
       hlsRef.current = hls;
     } else {
-      setError('Video playback not supported in this browser');
+      setError(t('video.notSupported'));
       setIsLoading(false);
     }
 
@@ -111,7 +113,7 @@ export function HLSVideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [media.hlsPlaylistUrl, startTime, videoKey]);
+  }, [media.hlsPlaylistUrl, startTime, videoKey, t]);
 
   const handleLoadedData = useCallback(() => {
     setIsLoading(false);
@@ -221,7 +223,7 @@ export function HLSVideoPlayer({
         <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-transparent"></div>
-            <span className="text-sm text-gray-600 dark:text-gray-300">Loading video...</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">{t('video.loadingVideo')}</span>
           </div>
         </div>
       )}
@@ -230,7 +232,7 @@ export function HLSVideoPlayer({
       {error && (
         <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
           <div className="text-center text-gray-600 dark:text-gray-300">
-            <div className="text-sm font-medium mb-1">Unable to load video</div>
+            <div className="text-sm font-medium mb-1">{t('video.unableToLoad')}</div>
             <div className="text-xs opacity-75">{error}</div>
           </div>
         </div>
