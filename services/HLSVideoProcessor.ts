@@ -15,37 +15,20 @@ import { S3Service } from '../storage/S3Service';
 
 function getFfmpegPaths(): { ffmpeg: string; ffprobe: string } {
   try {
-    const { execSync } = require('child_process');
-    const systemFfmpeg = execSync('which ffmpeg', { encoding: 'utf8' }).trim();
-    const systemFfprobe = execSync('which ffprobe', { encoding: 'utf8' }).trim();
-    if (systemFfmpeg && systemFfprobe) {
-      console.log('Using system FFmpeg:', systemFfmpeg);
-      console.log('Using system FFprobe:', systemFfprobe);
-      return { ffmpeg: systemFfmpeg, ffprobe: systemFfprobe };
+    // Use eval('require') to prevent webpack from bundling the native binaries
+    const ffmpegPath = eval("require")("ffmpeg-static");
+    const ffprobePath = eval("require")("ffprobe-static").path;
+    
+    if (ffmpegPath && ffprobePath) {
+      console.log('Using ffmpeg-static path:', ffmpegPath);
+      console.log('Using ffprobe-static path:', ffprobePath);
+      return { ffmpeg: ffmpegPath, ffprobe: ffprobePath };
     }
   } catch (error) {
-    console.log('System FFmpeg/FFprobe not found, trying ffmpeg-static');
+    console.error('Failed to load ffmpeg-static or ffprobe-static:', error);
   }
 
-  try {
-    const ffmpegStatic = require('ffmpeg-static');
-    if (ffmpegStatic) {
-      console.log('FFmpeg path configured from ffmpeg-static:', ffmpegStatic);
-      try {
-        const { execSync } = require('child_process');
-        const systemFfprobe = execSync('which ffprobe', { encoding: 'utf8' }).trim();
-        return { ffmpeg: ffmpegStatic, ffprobe: systemFfprobe };
-      } catch {
-        const path = require('path');
-        const ffprobeStatic = path.join(path.dirname(ffmpegStatic), 'ffprobe');
-        return { ffmpeg: ffmpegStatic, ffprobe: ffprobeStatic };
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load ffmpeg-static:', error);
-  }
-
-  throw new Error('FFmpeg/FFprobe not found. Please install FFmpeg or ensure ffmpeg-static is properly configured.');
+  throw new Error('FFmpeg/FFprobe not found. Please ensure ffmpeg-static and ffprobe-static are installed.');
 }
 
 const ffmpegPaths = getFfmpegPaths();
@@ -163,6 +146,28 @@ export class HLSVideoProcessor {
       ];
 
       console.log(`[HLS] Running FFprobe: ${ffmpegPaths.ffprobe} ${ffprobeArgs.join(' ')}`);
+      
+      // Additional Vercel debugging
+      try {
+        const fs = require('fs');
+        if (!fs.existsSync(ffmpegPaths.ffprobe)) {
+          console.error(`[HLS] FFprobe binary not found at path: ${ffmpegPaths.ffprobe}`);
+          reject(new Error(`FFprobe binary not found at path: ${ffmpegPaths.ffprobe}`));
+          return;
+        }
+        
+        // Check if file is executable
+        try {
+          fs.accessSync(ffmpegPaths.ffprobe, fs.constants.X_OK);
+        } catch (accessError) {
+          console.error(`[HLS] FFprobe binary is not executable: ${ffmpegPaths.ffprobe}`);
+          reject(new Error(`FFprobe binary is not executable: ${ffmpegPaths.ffprobe}`));
+          return;
+        }
+      } catch (checkError) {
+        console.error(`[HLS] Error checking FFprobe binary: ${checkError}`);
+      }
+      
       const ffprobe = spawn(ffmpegPaths.ffprobe, ffprobeArgs);
       let stdout = '';
       let stderr = '';
@@ -225,6 +230,17 @@ export class HLSVideoProcessor {
         isResolved = true;
         
         console.error(`[HLS] FFprobe spawn error: ${error.message}`);
+        // Additional error details
+        console.error(`[HLS] FFprobe path: ${ffmpegPaths.ffprobe}`);
+        if ('code' in error) {
+          console.error(`[HLS] Error code: ${(error as any).code}`);
+        }
+        if ('errno' in error) {
+          console.error(`[HLS] Error errno: ${(error as any).errno}`);
+        }
+        if ('syscall' in error) {
+          console.error(`[HLS] Error syscall: ${(error as any).syscall}`);
+        }
         reject(new Error(`FFprobe spawn error: ${error.message}`));
       });
     });
@@ -265,6 +281,28 @@ export class HLSVideoProcessor {
       ];
       
       console.log(`[HLS] Running FFmpeg: ${ffmpegPaths.ffmpeg} ${ffmpegArgs.join(' ')}`);
+      
+      // Additional Vercel debugging
+      try {
+        const fs = require('fs');
+        if (!fs.existsSync(ffmpegPaths.ffmpeg)) {
+          console.error(`[HLS] FFmpeg binary not found at path: ${ffmpegPaths.ffmpeg}`);
+          reject(new Error(`FFmpeg binary not found at path: ${ffmpegPaths.ffmpeg}`));
+          return;
+        }
+        
+        // Check if file is executable
+        try {
+          fs.accessSync(ffmpegPaths.ffmpeg, fs.constants.X_OK);
+        } catch (accessError) {
+          console.error(`[HLS] FFmpeg binary is not executable: ${ffmpegPaths.ffmpeg}`);
+          reject(new Error(`FFmpeg binary is not executable: ${ffmpegPaths.ffmpeg}`));
+          return;
+        }
+      } catch (checkError) {
+        console.error(`[HLS] Error checking FFmpeg binary: ${checkError}`);
+      }
+      
       const ffmpeg = spawn(ffmpegPaths.ffmpeg, ffmpegArgs);
       let stderr = '';
       let isResolved = false;
@@ -308,6 +346,17 @@ export class HLSVideoProcessor {
         isResolved = true;
         
         console.error(`[HLS] FFmpeg spawn error: ${error.message}`);
+        // Additional error details
+        console.error(`[HLS] FFmpeg path: ${ffmpegPaths.ffmpeg}`);
+        if ('code' in error) {
+          console.error(`[HLS] Error code: ${(error as any).code}`);
+        }
+        if ('errno' in error) {
+          console.error(`[HLS] Error errno: ${(error as any).errno}`);
+        }
+        if ('syscall' in error) {
+          console.error(`[HLS] Error syscall: ${(error as any).syscall}`);
+        }
         reject(new Error(`FFmpeg spawn error: ${error.message}`));
       });
     });
