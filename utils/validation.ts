@@ -232,18 +232,25 @@ export function sanitizeToAscii(text: string): string {
  * Validates guest name input with file system safety and auto-sanitization.
  *
  * @param guestName - Guest name to validate
+ * @param t - Optional translation function for i18n support
  * @returns Trimmed and sanitized guest name
  * @throws {ValidationError} If guest name is invalid
  */
-export function validateGuestName(guestName: unknown): string {
+export function validateGuestName(guestName: unknown, t?: (key: string, options?: any) => string): string {
   if (typeof guestName !== 'string') {
-    throw new ValidationError('Please enter your name as text', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameRequiredDescription') : 'Please enter your name as text',
+      'guestName'
+    );
   }
 
   const trimmedName = guestName.trim();
 
   if (trimmedName.length === 0) {
-    throw new ValidationError('Please enter your name', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameRequiredDescription') : 'Please enter your name',
+      'guestName'
+    );
   }
 
   // Auto-sanitize the name for file system safety
@@ -254,38 +261,60 @@ export function validateGuestName(guestName: unknown): string {
     .trim();
 
   if (sanitizedName.length === 0) {
-    throw new ValidationError('Please enter a valid name with letters', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameNoLetters') : 'Please enter a valid name with letters',
+      'guestName'
+    );
   }
 
   if (sanitizedName.length < MIN_GUEST_NAME_LENGTH) {
-    throw new ValidationError(`Name needs at least ${MIN_GUEST_NAME_LENGTH} characters (e.g., "Jo")`, 'guestName');
+    throw new ValidationError(
+      t 
+        ? t('errors.nameTooShort', { minLength: MIN_GUEST_NAME_LENGTH }) 
+        : `Name needs at least ${MIN_GUEST_NAME_LENGTH} characters (e.g., "Jo")`,
+      'guestName'
+    );
   }
 
   if (sanitizedName.length > MAX_GUEST_NAME_LENGTH) {
     throw new ValidationError(
-      `Name is too long (max ${MAX_GUEST_NAME_LENGTH} characters). Please use a shorter version`,
+      t 
+        ? t('errors.nameTooLong', { maxLength: MAX_GUEST_NAME_LENGTH }) 
+        : `Name is too long (max ${MAX_GUEST_NAME_LENGTH} characters). Please use a shorter version`,
       'guestName'
     );
   }
 
   // Check for potentially malicious content
   if (containsMaliciousContent(sanitizedName)) {
-    throw new ValidationError('Name contains invalid characters', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameInvalidChars') : 'Name contains invalid characters',
+      'guestName'
+    );
   }
 
   // After sanitization, ensure it only contains safe characters
   if (containsFileSystemUnsafeCharacters(sanitizedName)) {
-    throw new ValidationError('Name contains unsupported characters', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameInvalidChars') : 'Name contains unsupported characters',
+      'guestName'
+    );
   }
 
   // Ensure name contains at least one letter
   if (!/[a-zA-Z]/.test(sanitizedName)) {
-    throw new ValidationError('Name must include at least one letter', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameNoLetters') : 'Name must include at least one letter',
+      'guestName'
+    );
   }
 
   // Check for inappropriate content
   if (containsInappropriateContent(sanitizedName)) {
-    throw new ValidationError('Please enter your actual name for the photo credits', 'guestName');
+    throw new ValidationError(
+      t ? t('errors.nameInappropriate') : 'Please enter your actual name for the photo credits',
+      'guestName'
+    );
   }
 
   return sanitizedName;
@@ -485,11 +514,12 @@ export function isValidFile(value: unknown): value is File {
  * This is a non-throwing version for UI validation.
  *
  * @param guestName - Guest name to validate
+ * @param t - Optional translation function for i18n support
  * @returns Error message if invalid, null if valid
  */
-export function validateGuestNameForUI(guestName: string): string | null {
+export function validateGuestNameForUI(guestName: string, t?: (key: string, options?: any) => string): string | null {
   try {
-    validateGuestName(guestName);
+    validateGuestName(guestName, t);
     return null;
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -516,12 +546,19 @@ export function previewNameSanitization(guestName: string): { original: string; 
     .replace(/^-|-$/g, '')
     .trim();
   
-  if (sanitized === trimmed) {
+  // Apply the same file system safety check as in validateGuestName
+  const finalSanitized = sanitized
+    .replace(/\s+/g, ' ')  // Normalize multiple spaces
+    .replace(/--+/g, '-')  // Normalize multiple hyphens
+    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+    .trim();
+  
+  if (finalSanitized === trimmed) {
     return null; // No change needed
   }
   
   return {
     original: trimmed,
-    sanitized: sanitized
+    sanitized: finalSanitized
   };
 }

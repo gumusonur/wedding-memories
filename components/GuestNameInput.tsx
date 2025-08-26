@@ -13,6 +13,7 @@ interface GuestNameInputProps {
   autoFocus?: boolean;
   disabled?: boolean;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  t?: (key: string, options?: any) => string;
 }
 
 /**
@@ -34,6 +35,7 @@ export const GuestNameInput = forwardRef<HTMLInputElement, GuestNameInputProps>(
   autoFocus = false,
   disabled = false,
   onKeyDown,
+  t,
 }, ref) => {
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState(true);
@@ -50,11 +52,11 @@ export const GuestNameInput = forwardRef<HTMLInputElement, GuestNameInputProps>(
       return;
     }
 
-    const validationError = validateGuestNameForUI(trimmedValue);
+    const validationError = validateGuestNameForUI(trimmedValue, t || undefined);
     setError(validationError);
     setIsValid(!validationError);
     onValidationChange?.(!validationError, validationError);
-  }, [value, onValidationChange]);
+  }, [value, onValidationChange, t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);

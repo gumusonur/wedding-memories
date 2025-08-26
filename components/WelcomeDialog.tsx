@@ -47,7 +47,7 @@ export function WelcomeDialog() {
     }
     // Use validated and sanitized name
     try {
-      const sanitizedName = validateGuestName(name);
+      const sanitizedName = validateGuestName(name, t);
       setGuestName(sanitizedName);
       setIsDialogOpen(false); // Close dialog on successful submission
       toast({
@@ -99,6 +99,7 @@ export function WelcomeDialog() {
             placeholder={t('welcome.placeholder')}
             className="text-center text-lg h-12 bg-muted/50 border-muted"
             autoFocus
+            t={t}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();

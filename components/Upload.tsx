@@ -84,7 +84,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const { toast } = useToast();
 
   const validateName = (name: string): string | null => {
-    return validateGuestNameForUI(name);
+    return validateGuestNameForUI(name, t);
   };
 
   useEffect(() => {
@@ -503,7 +503,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Use validated and sanitized name
-    const sanitizedName = validateGuestName(rawValue);
+    const sanitizedName = validateGuestName(rawValue, t);
 
     setGuestName(sanitizedName);
     setIsEditingName(false);
