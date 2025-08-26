@@ -125,13 +125,18 @@
   },
   "common": {
     "loading": "Loading",
+    "loadingMemories": "Loading beautiful memories...",
+    "weddingMemories": "Wedding Memories", 
     "error": "Error",
+    "videoUnavailable": "Video unavailable",
+    "failedToLoad": "Failed to load",
     "success": "Success",
     "file": "file",
     "files": "files",
     "photo": "photo",
     "photos": "photos",
     "video": "video",
-    "videos": "videos"
+    "videos": "videos",
+    "close": "Close"
   }
 }

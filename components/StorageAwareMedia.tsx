@@ -8,6 +8,7 @@
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
 import { appConfig, StorageProvider } from '../config';
+import { useI18n } from './I18nProvider';
 import type { MediaProps } from '../utils/types';
 import { Play } from 'lucide-react';
 import { HLSVideoPlayer, getStoredVideoPosition } from './HLSVideoPlayer';
@@ -74,6 +75,7 @@ export function StorageAwareMedia({
   const isCloudinary = appConfig.storage === StorageProvider.Cloudinary;
   const widthNum = parseInt(width, 10);
   const heightNum = parseInt(height, 10);
+  const { t } = useI18n();
 
   const [isLoading, setIsLoading] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -262,11 +264,11 @@ export function StorageAwareMedia({
           <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center">
             <div className="text-center text-gray-600 dark:text-gray-300">
               {context === 'thumb' ? (
-                <div className="text-xs font-medium">Error</div>
+                <div className="text-xs font-medium">{t('common.error')}</div>
               ) : (
                 <>
-                  <div className="text-sm font-medium mb-1">Video unavailable</div>
-                  <div className="text-xs opacity-75">Failed to load</div>
+                  <div className="text-sm font-medium mb-1">{t('common.videoUnavailable')}</div>
+                  <div className="text-xs opacity-75">{t('common.failedToLoad')}</div>
                 </>
               )}
             </div>

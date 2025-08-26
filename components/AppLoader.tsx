@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 import { appConfig } from '../config';
 import { Spinner } from './ui/spinner';
 import { cn } from '@/lib/utils';
+import { useI18n } from './I18nProvider';
 
 interface AppLoaderProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export function AppLoader({ children, minLoadTime = 1500 }: AppLoaderProps) {
   const [fadeOut, setFadeOut] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { theme, systemTheme } = useTheme();
+  const { t } = useI18n();
 
   useEffect(() => {
     setMounted(true);
@@ -49,9 +51,9 @@ export function AppLoader({ children, minLoadTime = 1500 }: AppLoaderProps) {
           <div className="text-center">
             <h2 className="text-xl font-semibold text-foreground">
               {appConfig.brideName} &{' '}
-              {appConfig.groomName} Wedding Memories
+              {appConfig.groomName} {t('common.weddingMemories')}
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">Loading beautiful memories...</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('common.loadingMemories')}</p>
           </div>
         </div>
       </div>

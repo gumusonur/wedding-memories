@@ -125,13 +125,18 @@
   },
   "common": {
     "loading": "Yükleniyor",
+    "loadingMemories": "Güzel anılar yükleniyor...",
+    "weddingMemories": "Düğün Anıları",
     "error": "Hata",
+    "videoUnavailable": "Video mevcut değil",
+    "failedToLoad": "Yüklenemedi",
     "success": "Başarılı",
     "file": "dosya",
     "files": "dosyalar",
     "photo": "fotoğraf",
     "photos": "fotoğraflar",
     "video": "video",
-    "videos": "videolar"
+    "videos": "videolar",
+    "close": "Kapat"
   }
 }
