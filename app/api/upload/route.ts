@@ -66,7 +66,6 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
   return { file, guestName: trimmedGuestName };
 }
 
-
 /**
  * Handles media upload requests using the configured storage provider.
  *
@@ -90,6 +89,41 @@ export async function POST(
       });
     }
 
+    // For S3 storage, we need to return presigned URLs for direct uploads to avoid 413 errors
+    if (appConfig.storage === StorageProvider.S3) {
+      // Parse form data to get file info
+      const formData = await request.formData().catch(() => {
+        throw new ValidationError('Invalid form data');
+      });
+
+      const { file, guestName } = validateUploadRequest(formData);
+
+      // For S3, check if it's a video file that needs presigned URL
+      if (file.type.startsWith('video/')) {
+        // Return presigned URL for direct S3 upload
+        const uploadData = await storage.generateVideoUploadUrl({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          guestName,
+          videoId: Date.now().toString() // Generate a unique ID
+        });
+
+        return NextResponse.json({
+          uploadMethod: 'direct',
+          presignedUrl: uploadData.uploadUrl,
+          publicUrl: uploadData.publicUrl,
+          guestName,
+          fileName: file.name
+        }, { 
+          status: 200,
+          headers: createRateLimitHeaders(rateLimitResult),
+        });
+      }
+      // For images or small videos, continue with direct upload through Next.js
+    }
+
+    // Handle Cloudinary uploads or S3 image uploads through Next.js server
     const formData = await request.formData().catch(() => {
       throw new ValidationError('Invalid form data');
     });

@@ -344,43 +344,34 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     );
 
     try {
-      // Simulate progress
       for (let progress = 10; progress <= 90; progress += 20) {
         setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress } : f)));
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
-      // Check if it's a video file and use appropriate API
       const isVideo = uploadFile.file.type.startsWith('video/');
       let data;
 
-      if (isVideo) {
-        if (appConfig.storage === StorageProvider.S3) {
-          // Use presigned URL for S3
-          // Step 1: Get presigned URL
-          const presignedRes = await fetch('/api/upload-video', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fileName: uploadFile.file.name,
-              fileSize: uploadFile.file.size,
-              fileType: uploadFile.file.type,
-              guestName,
-            }),
-          });
+      if (appConfig.storage === StorageProvider.S3 && isVideo) {
+        const formData = new FormData();
+        formData.append('file', uploadFile.file);
+        formData.append('guestName', guestName);
 
-          const presignedData = await presignedRes.json();
-          
-          if (!presignedRes.ok) {
-            throw new Error(presignedData.error || 'Failed to get upload URL');
-          }
+        const presignedRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
+        const presignedData = await presignedRes.json();
+        
+        if (!presignedRes.ok) {
+          throw new Error(presignedData.error || 'Failed to get upload URL');
+        }
+
+        if (presignedData.uploadMethod === 'direct') {
           setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 30 } : f)));
 
-          // Step 2: Upload directly to S3
-          const uploadRes = await fetch(presignedData.data.uploadUrl, {
+          const uploadRes = await fetch(presignedData.presignedUrl, {
             method: 'PUT',
             body: uploadFile.file,
             headers: {
@@ -394,47 +385,20 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
           setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 80 } : f)));
 
-          // Step 3: Confirm upload completion
-          const confirmRes = await fetch('/api/upload-video', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              videoId: presignedData.data.videoId,
-              guestName,
-              fileName: uploadFile.file.name,
-              publicUrl: presignedData.data.publicUrl,
-            }),
-          });
-
-          data = await confirmRes.json();
-          
-          if (!confirmRes.ok) {
-            throw new Error(data.error || 'Failed to confirm upload');
-          }
-
-          // Use video data from confirmation response
-          data = data.data.video;
+          data = {
+            url: presignedData.publicUrl,
+            public_id: presignedData.publicUrl,
+            format: uploadFile.file.type.split('/')[1] || 'mp4',
+            resource_type: 'video',
+            guestName: presignedData.guestName,
+            uploadDate: new Date().toISOString(),
+            height: '480',
+            width: '720',
+          };
         } else {
-          // Use FormData for Cloudinary (up to 100MB limit)
-          const formData = new FormData();
-          formData.append('file', uploadFile.file);
-          formData.append('guestName', guestName);
-
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-
-          data = await res.json();
-          
-          if (!res.ok) {
-            throw new Error(data.error || 'Failed to upload video');
-          }
+          data = presignedData;
         }
       } else {
-        // Use regular upload API for images
         const formData = new FormData();
         formData.append('file', uploadFile.file);
         formData.append('guestName', guestName);
@@ -447,28 +411,25 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         data = await res.json();
         
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to upload image');
+          throw new Error(data.error || 'Failed to upload file');
         }
       }
 
-      // Success handling (data is already processed above for both image and video)
       if (data) {
         setFiles((prev) =>
           prev.map((f) => (f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f))
         );
 
-        // Add photo directly to the UI for immediate feedback
         const newMedia: MediaProps = {
-          id: Date.now(), // Generate a unique numeric ID
+          id: Date.now(),
           public_id: data.public_id || data.url || '',
           format: data.format,
           resource_type: data.resource_type,
-          blurDataUrl: '', // Will be generated on next page load
+          blurDataUrl: '',
           guestName: data.guestName || guestName,
           uploadDate: data.uploadDate || data.created_at,
           height: data.height?.toString() || '480',
           width: data.width?.toString() || '720',
-          // Include video-specific properties if they exist
           videoId: data.videoId,
           duration: data.duration,
         };
