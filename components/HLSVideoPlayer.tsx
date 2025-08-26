@@ -1,6 +1,6 @@
 /**
  * HLS Video Player Component
- * 
+ *
  * Instagram-style video player that supports:
  * - HLS streaming for fast video playback
  * - Autoplay muted in feed mode
@@ -60,7 +60,7 @@ export function HLSVideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Create unique key for this video
   const videoKey = `${media.guestName}-${media.videoId}`;
 
@@ -87,10 +87,10 @@ export function HLSVideoPlayer({
         lowLatencyMode: false,
         backBufferLength: 90, // Keep 90 seconds of buffer for seeking
       });
-      
+
       hls.loadSource(media.hlsPlaylistUrl);
       hls.attachMedia(video);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setError(null);
         // Set start time if provided or resume from stored position
@@ -99,13 +99,13 @@ export function HLSVideoPlayer({
           video.currentTime = resumeTime;
         }
       });
-      
+
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS Error:', data);
         setError('Video playback error');
         setIsLoading(false);
       });
-      
+
       hlsRef.current = hls;
     } else {
       setError('Video playback not supported in this browser');
@@ -130,22 +130,23 @@ export function HLSVideoPlayer({
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const time = video.currentTime;
     setCurrentTime(time);
-    
+
     // Store timestamp for resume functionality
-    if (time > 1) { // Only store if we're past the first second
+    if (time > 1) {
+      // Only store if we're past the first second
       videoTimestamps.set(videoKey, time);
     }
-    
+
     onTimeUpdate?.(time);
   }, [onTimeUpdate, videoKey]);
 
   const handleDurationChange = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const videoDuration = video.duration;
     setDuration(videoDuration);
     onDurationChange?.(videoDuration);
@@ -169,7 +170,7 @@ export function HLSVideoPlayer({
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isPlaying) {
       video.pause();
     } else {
@@ -182,7 +183,7 @@ export function HLSVideoPlayer({
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     video.muted = !video.muted;
     setIsMuted(video.muted);
   }, []);
@@ -226,8 +227,8 @@ export function HLSVideoPlayer({
   }, [playOnHover, controls, isPlaying]);
 
   return (
-    <div 
-      className={`relative ${className}`} 
+    <div
+      className={`relative ${className}`}
       style={style}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -255,7 +256,7 @@ export function HLSVideoPlayer({
       {/* Video element */}
       <video
         ref={videoRef}
-        className={`w-full h-full object-cover ${isLoading || error ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`w-full h-full object-contain ${isLoading || error ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         autoPlay={autoplay}
         muted={muted}
         loop={loop}
@@ -278,10 +279,12 @@ export function HLSVideoPlayer({
           {/* Play/Pause overlay - only show when not playing or for hover videos */}
           {(!isPlaying || playOnHover) && (
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <div className={`bg-black/70 rounded-full p-3 backdrop-blur-sm transition-opacity duration-200 ${
-                playOnHover && isPlaying ? 'opacity-0' : 'opacity-100'
-              }`}>
-                <Play className="w-8 h-8 text-white" fill="white" />
+              <div
+                className={`bg-black/70 grid place-items-center size-10 rounded-full backdrop-blur-sm transition-opacity duration-200 ${
+                  playOnHover && isPlaying ? 'opacity-0' : 'opacity-100'
+                }`}
+              >
+                <Play className="size-5 text-white" fill="white" />
               </div>
             </div>
           )}
@@ -326,3 +329,4 @@ export function getStoredVideoPosition(guestName: string, videoId: string): numb
 export function clearStoredVideoPositions(): void {
   videoTimestamps.clear();
 }
+

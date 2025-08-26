@@ -168,7 +168,38 @@ export function getOptimizedMediaProps(
   const { priority = false, quality = 'medium' } = options;
 
   if (item.resource_type === 'video') {
-    // No poster - let browser show first frame naturally when metadata loads
+    // For thumbnail context, generate a static image thumbnail instead of video
+    if (context === 'thumb') {
+      // Generate a static image thumbnail for carousel display
+      const thumbnailImageSrc = appConfig.storage === StorageProvider.S3 
+        ? getFullUrl(item.public_id, item.resource_type)
+        : (() => {
+            // For Cloudinary, generate an image thumbnail from video
+            const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+            if (!cloudName) return getFullUrl(item.public_id, item.resource_type);
+            
+            // Generate a still image from the video at 1 second mark
+            const publicId = item.public_id.startsWith('http') ? item.public_id : item.public_id;
+            if (publicId.startsWith('http')) return publicId;
+            
+            return `https://res.cloudinary.com/${cloudName}/video/upload/c_fill,w_180,h_120,so_1.0,f_jpg,q_auto/${publicId}`;
+          })();
+
+      return {
+        src: thumbnailImageSrc,
+        alt: `Wedding video thumbnail${item.guestName && item.guestName !== 'Unknown Guest' ? ` shared by ${item.guestName}` : ''}`,
+        width: '180',
+        height: '120',
+        sizes: getResponsiveMediaSizes(context),
+        priority: false,
+        loading: 'lazy' as const,
+        resource_type: 'image' as const, // Treat as image for thumbnail display
+        format: 'jpg',
+        context,
+      };
+    }
+    
+    // For gallery and modal contexts, use video
     const posterUrl = undefined;
     
     // For S3, always use full URL since we don't have quality transformations

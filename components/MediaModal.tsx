@@ -21,6 +21,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Play,
 } from 'lucide-react';
 import type { MediaProps } from '../utils/types';
 import { variants } from '../utils/animationVariants';
@@ -133,8 +134,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
     const touch1 = touches[0];
     const touch2 = touches[1];
     return Math.sqrt(
-      Math.pow(touch2.clientX - touch1.clientX, 2) + 
-      Math.pow(touch2.clientY - touch1.clientY, 2)
+      Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
     );
   }, []);
 
@@ -151,7 +151,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
     (newIndex: number) => {
       // Pause any currently playing video before switching
       const currentVideoElements = document.querySelectorAll('video');
-      currentVideoElements.forEach(video => {
+      currentVideoElements.forEach((video) => {
         if (!video.paused) {
           video.pause();
         }
@@ -214,9 +214,9 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
   // Memoize media props to prevent unnecessary re-fetches
   const currentMediaProps = useMemo(() => {
     if (!currentItem) return null;
-    return getOptimizedMediaProps(currentItem, 'modal', { 
-      priority: true, 
-      quality: isVideo ? 'medium' : 'full'
+    return getOptimizedMediaProps(currentItem, 'modal', {
+      priority: true,
+      quality: isVideo ? 'medium' : 'full',
     });
   }, [currentItem, isVideo]);
 
@@ -227,98 +227,117 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
   useKeypress('0', () => !isVideo && resetZoom());
 
   // Touch event handlers for pinch-to-zoom
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isVideo) return; // Only allow zoom on images
-    
-    if (e.touches.length === 1) {
-      // Record touch start position for double-tap detection
-      setTouchStartPos({
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      });
-      setHasTouchMoved(false);
-      
-      if (zoom > 1) {
-        // Start pan gesture when zoomed
-        setIsDragging(true);
-        setDragStart({
-          x: e.touches[0].clientX - panX,
-          y: e.touches[0].clientY - panY,
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (isVideo) return; // Only allow zoom on images
+
+      if (e.touches.length === 1) {
+        // Record touch start position for double-tap detection
+        setTouchStartPos({
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
         });
-      }
-    } else if (e.touches.length === 2) {
-      // Start pinch gesture
-      setIsPinching(true);
-      setInitialDistance(getDistance(e.touches));
-      setInitialZoom(zoom);
-      e.preventDefault();
-    }
-  }, [isVideo, zoom, getDistance, panX, panY]);
+        setHasTouchMoved(false);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isVideo) return;
-    
-    // Track movement for double-tap detection
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      const moveDistance = Math.sqrt(
-        Math.pow(touch.clientX - touchStartPos.x, 2) + 
-        Math.pow(touch.clientY - touchStartPos.y, 2)
-      );
-      if (moveDistance > 10) {
-        setHasTouchMoved(true);
-      }
-    }
-    
-    if (isPinching && e.touches.length === 2) {
-      // Handle pinch zoom
-      const currentDistance = getDistance(e.touches);
-      if (initialDistance > 0) {
-        const scale = currentDistance / initialDistance;
-        const newZoom = Math.max(0.5, Math.min(5, initialZoom * scale));
-        setZoom(newZoom);
-      }
-      e.preventDefault();
-    } else if (isDragging && e.touches.length === 1 && zoom > 1) {
-      // Handle pan when zoomed
-      const newPanX = e.touches[0].clientX - dragStart.x;
-      const newPanY = e.touches[0].clientY - dragStart.y;
-      setPanX(newPanX);
-      setPanY(newPanY);
-      e.preventDefault();
-    }
-  }, [isVideo, isPinching, isDragging, getDistance, initialDistance, initialZoom, zoom, dragStart, touchStartPos]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (isVideo) return;
-    
-    if (e.touches.length < 2) {
-      setIsPinching(false);
-      setInitialDistance(0);
-    }
-    
-    if (e.touches.length === 0) {
-      setIsDragging(false);
-      
-      // Handle double-tap to zoom
-      if (e.changedTouches.length === 1 && !hasTouchMoved) {
-        const now = Date.now();
-        if (now - lastTapTime < 300) {
-          // Double tap detected - zoom from center
-          if (zoom === 1) {
-            setPanX(0);
-            setPanY(0);
-            setZoom(2);
-          } else {
-            resetView();
-          }
+        if (zoom > 1) {
+          // Start pan gesture when zoomed
+          setIsDragging(true);
+          setDragStart({
+            x: e.touches[0].clientX - panX,
+            y: e.touches[0].clientY - panY,
+          });
         }
-        setLastTapTime(now);
+      } else if (e.touches.length === 2) {
+        // Start pinch gesture
+        setIsPinching(true);
+        setInitialDistance(getDistance(e.touches));
+        setInitialZoom(zoom);
+        e.preventDefault();
       }
-    }
-    
-    setHasTouchMoved(false);
-  }, [isVideo, hasTouchMoved, lastTapTime, zoom, resetView]);
+    },
+    [isVideo, zoom, getDistance, panX, panY]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (isVideo) return;
+
+      // Track movement for double-tap detection
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const moveDistance = Math.sqrt(
+          Math.pow(touch.clientX - touchStartPos.x, 2) +
+            Math.pow(touch.clientY - touchStartPos.y, 2)
+        );
+        if (moveDistance > 10) {
+          setHasTouchMoved(true);
+        }
+      }
+
+      if (isPinching && e.touches.length === 2) {
+        // Handle pinch zoom
+        const currentDistance = getDistance(e.touches);
+        if (initialDistance > 0) {
+          const scale = currentDistance / initialDistance;
+          const newZoom = Math.max(0.5, Math.min(5, initialZoom * scale));
+          setZoom(newZoom);
+        }
+        e.preventDefault();
+      } else if (isDragging && e.touches.length === 1 && zoom > 1) {
+        // Handle pan when zoomed
+        const newPanX = e.touches[0].clientX - dragStart.x;
+        const newPanY = e.touches[0].clientY - dragStart.y;
+        setPanX(newPanX);
+        setPanY(newPanY);
+        e.preventDefault();
+      }
+    },
+    [
+      isVideo,
+      isPinching,
+      isDragging,
+      getDistance,
+      initialDistance,
+      initialZoom,
+      zoom,
+      dragStart,
+      touchStartPos,
+    ]
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (isVideo) return;
+
+      if (e.touches.length < 2) {
+        setIsPinching(false);
+        setInitialDistance(0);
+      }
+
+      if (e.touches.length === 0) {
+        setIsDragging(false);
+
+        // Handle double-tap to zoom
+        if (e.changedTouches.length === 1 && !hasTouchMoved) {
+          const now = Date.now();
+          if (now - lastTapTime < 300) {
+            // Double tap detected - zoom from center
+            if (zoom === 1) {
+              setPanX(0);
+              setPanY(0);
+              setZoom(2);
+            } else {
+              resetView();
+            }
+          }
+          setLastTapTime(now);
+        }
+      }
+
+      setHasTouchMoved(false);
+    },
+    [isVideo, hasTouchMoved, lastTapTime, zoom, resetView]
+  );
 
   // Mouse event handlers for desktop dragging
   const handleMouseDown = useCallback(
@@ -348,7 +367,7 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
     (e: React.WheelEvent) => {
       if (isVideo) return;
       e.preventDefault();
-      
+
       if (e.deltaY < 0) {
         // Zoom in
         zoomIn();
@@ -391,12 +410,22 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
             {currentItem.guestName && ` shared by ${currentItem.guestName}`}
           </DialogTitle>
 
-          <MotionConfig transition={{ x: { type: 'tween', duration: 0.2, ease: 'easeOut' }, opacity: { duration: 0.15 } }}>
-            <div className="relative z-50 flex w-full max-w-7xl items-center justify-center p-4" {...(zoom === 1 && !isPinching ? handlers : {})}>
+          <MotionConfig
+            transition={{
+              x: { type: 'tween', duration: 0.2, ease: 'easeOut' },
+              opacity: { duration: 0.15 },
+            }}
+          >
+            <div
+              className="relative z-50 flex w-full max-w-7xl items-center justify-center p-4"
+              {...(zoom === 1 && !isPinching ? handlers : {})}
+            >
               <div className="w-full h-full flex items-center justify-center">
-                <div 
-                  ref={mediaContainerRef} 
-                  className="relative w-full max-w-full h-[90vh] overflow-hidden flex items-center justify-center"
+                <div
+                  ref={mediaContainerRef}
+                  className={`relative w-full max-w-full overflow-hidden flex items-center justify-center ${
+                    zoom === 1 && controlsVisible ? 'h-[calc(100vh-12rem)]' : 'h-[90vh]' // Full height when zoomed or controls hidden
+                  }`}
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
@@ -405,15 +434,19 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onWheel={handleWheel}
-                  style={{ 
+                  style={{
                     touchAction: zoom > 1 || isPinching ? 'none' : 'auto',
                     cursor: zoom > 1 && !isVideo ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                    userSelect: 'none'
+                    userSelect: 'none',
                   }}
                 >
                   {controlsVisible && (
-                    <div className="absolute top-4 right-0 z-20 rounded-full bg-black/50 backdrop-blur-lg p-1">
-                      <button onClick={onClose} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white" title="Close modal (Esc)">
+                    <div className="fixed top-2 md:top-4 right-2 md:right-5 z-20 rounded-full bg-black/50 backdrop-blur-lg p-1">
+                      <button
+                        onClick={onClose}
+                        className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
+                        title="Close modal (Esc)"
+                      >
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -421,26 +454,65 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
 
                   {controlsVisible && (
                     <>
-                      <div className="absolute top-4 left-0 z-20 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-lg p-1">
-                        <a href={getExternalUrl(currentItem.public_id, currentItem.resource_type, currentItem.format)} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white" target="_blank" title="Open fullsize version" rel="noreferrer">
+                      <div className="fixed top-2 md:top-4 left-2 md:left-5 z-20 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-lg p-1">
+                        <a
+                          href={getExternalUrl(
+                            currentItem.public_id,
+                            currentItem.resource_type,
+                            currentItem.format
+                          )}
+                          className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
+                          target="_blank"
+                          title="Open fullsize version"
+                          rel="noreferrer"
+                        >
                           <ExternalLink className="h-4 w-4" />
                         </a>
-                        <button onClick={() => downloadPhoto(getDownloadUrl(currentItem.public_id, currentItem.resource_type, currentItem.format), `${currentIndex + 1}.${currentItem.format}`)} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white" title="Download fullsize version">
+                        <button
+                          onClick={() =>
+                            downloadPhoto(
+                              getDownloadUrl(
+                                currentItem.public_id,
+                                currentItem.resource_type,
+                                currentItem.format
+                              ),
+                              `${currentIndex + 1}.${currentItem.format}`
+                            )
+                          }
+                          className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white"
+                          title="Download fullsize version"
+                        >
                           <Download className="h-4 w-4" />
                         </button>
                       </div>
 
                       {!isVideo && (
-                        <div className="absolute left-1/2 -translate-x-1/2 top-4 z-20 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-lg p-1 pointer-events-auto zoom-controls">
-                          <button onClick={zoomOut} disabled={zoom <= 0.5} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50" title="Zoom out (-)">
+                        <div className="fixed left-1/2 -translate-x-1/2 top-2 md:top-4 z-20 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-lg p-1 pointer-events-auto zoom-controls">
+                          <button
+                            onClick={zoomOut}
+                            disabled={zoom <= 0.5}
+                            className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50"
+                            title="Zoom out (-)"
+                          >
                             <ZoomOut className="h-4 w-4" />
                           </button>
-                          <span className="px-2 text-sm text-white/90 min-w-[3rem] text-center font-medium">{Math.round(zoom * 100)}%</span>
-                          <button onClick={zoomIn} disabled={zoom >= 5} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50" title="Zoom in (+)">
+                          <span className="px-2 text-sm text-white/90 min-w-[3rem] text-center font-medium">
+                            {Math.round(zoom * 100)}%
+                          </span>
+                          <button
+                            onClick={zoomIn}
+                            disabled={zoom >= 5}
+                            className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white disabled:opacity-50"
+                            title="Zoom in (+)"
+                          >
                             <ZoomIn className="h-4 w-4" />
                           </button>
                           {zoom !== 1 && (
-                            <button onClick={resetZoom} className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white ml-0.5" title="Reset zoom (0)">
+                            <button
+                              onClick={resetZoom}
+                              className="rounded-full p-2 text-white/75 transition hover:bg-black/50 hover:text-white ml-0.5"
+                              title="Reset zoom (0)"
+                            >
                               <RotateCcw className="h-4 w-4" />
                             </button>
                           )}
@@ -450,36 +522,57 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                   )}
 
                   {!isTouchDevice && currentIndex > 0 && zoom === 1 && controlsVisible && (
-                    <button onClick={() => changeMediaIndex(currentIndex - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white" title="Previous media">
+                    <button
+                      onClick={() => changeMediaIndex(currentIndex - 1)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
+                      title="Previous media"
+                    >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
                   )}
 
-                  {!isTouchDevice && currentIndex + 1 < items.length && zoom === 1 && controlsVisible && (
-                    <button onClick={() => changeMediaIndex(currentIndex + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white" title="Next media">
-                      <ChevronRight className="h-6 w-6" />
-                    </button>
-                  )}
+                  {!isTouchDevice &&
+                    currentIndex + 1 < items.length &&
+                    zoom === 1 &&
+                    controlsVisible && (
+                      <button
+                        onClick={() => changeMediaIndex(currentIndex + 1)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/50 p-2 text-white/75 backdrop-blur-lg transition hover:bg-black/75 hover:text-white"
+                        title="Next media"
+                      >
+                        <ChevronRight className="h-6 w-6" />
+                      </button>
+                    )}
 
                   <AnimatePresence initial={false} custom={direction} mode="wait">
-                    <motion.div key={`${currentIndex}-${currentItem.id}`} custom={direction} variants={variants} initial="enter" animate="center" exit="exit" className="absolute inset-0 flex items-center justify-center">
-                      <div 
-                        className="flex items-center justify-center w-full h-full" 
-                        style={{ 
-                          transform: !isVideo 
-                            ? `translate(${panX}px, ${panY}px) scale(${zoom})` 
-                            : 'scale(1)', 
+                    <motion.div
+                      key={`${currentIndex}-${currentItem.id}`}
+                      custom={direction}
+                      variants={variants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      <div
+                        className="flex items-center justify-center w-full h-full"
+                        style={{
+                          transform: !isVideo
+                            ? `translate(${panX}px, ${panY}px) scale(${zoom})`
+                            : 'scale(1)',
                           transition: isDragging || isPinching ? 'none' : 'transform 0.1s ease-out',
-                          transformOrigin: 'center center'
+                          transformOrigin: 'center center',
                         }}
                       >
                         {currentMediaProps && (
                           <StorageAwareMedia
                             {...currentMediaProps}
                             onLoad={() => setLoaded(true)}
-                            className={`max-w-full max-h-full w-auto h-auto object-contain select-none mx-auto my-auto ${
-                              isVideo ? 'rounded-lg' : ''
-                            }`}
+                            className={`${
+                              isVideo
+                                ? 'w-full h-full max-w-full max-h-full object-contain rounded-lg'
+                                : 'max-w-full max-h-full w-auto h-auto object-contain'
+                            } select-none mx-auto my-auto`}
                             draggable={false}
                           />
                         )}
@@ -490,14 +583,16 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
               </div>
 
               {zoom === 1 && controlsVisible && (
-                <div className={`fixed inset-x-0 z-60 overflow-hidden bottom-0 ${isSafariMobile ? 'ios-safari-bottom' : ''}`}>
+                <div
+                  className={`fixed inset-x-0 z-60 overflow-hidden bottom-0 ${isSafariMobile ? 'ios-safari-bottom' : ''}`}
+                >
                   <motion.div
                     initial={false}
                     animate={{
-                      x: `${Math.max(currentIndex * -100, 15 * -100)}%`,
+                      x: `calc(50% - ${(currentIndex + 0.5) * 64}px)`,
                     }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="mx-auto mt-6 flex aspect-[3/2] h-14"
+                    className="mx-auto mt-0 md:mt-6 flex items-center"
                   >
                     <AnimatePresence initial={false}>
                       {items.map((item, index) => (
@@ -506,12 +601,23 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                           transition={{ duration: 0.15 }}
                           onClick={() => changeMediaIndex(index)}
                           key={index}
-                          className={`${index === currentIndex ? 'z-20 rounded-md shadow shadow-black/50' : 'z-10'} ${index === 0 ? 'rounded-l-md' : ''} ${index === items.length - 1 ? 'rounded-r-md' : ''} relative inline-block w-full shrink-0 transform-gpu overflow-hidden focus:outline-none`}
+                          className={`${index === currentIndex ? 'z-20 rounded-md' : 'z-10'} ${index === 0 ? 'rounded-l-md' : ''} ${index === items.length - 1 ? 'rounded-r-md' : ''} relative inline-block w-16 md:w-20 h-16 md:h-20 shrink-0 transform-gpu overflow-hidden focus:outline-none`}
                         >
                           <StorageAwareMedia
-                            {...getOptimizedMediaProps(item, 'thumb', { priority: Math.abs(index - currentIndex) <= 2, quality: 'thumb' })}
+                            {...getOptimizedMediaProps(item, 'thumb', {
+                              priority: Math.abs(index - currentIndex) <= 2,
+                              quality: 'thumb',
+                            })}
                             className={`${index === currentIndex ? 'brightness-110 hover:brightness-110' : 'brightness-50 contrast-125 hover:brightness-75'} h-full transform object-cover transition`}
                           />
+                          {/* Video play icon overlay for video thumbnails */}
+                          {item.resource_type === 'video' && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <div className="bg-black/70 rounded-full p-1 backdrop-blur-sm">
+                                <Play className="w-3 h-3 text-white" fill="white" />
+                              </div>
+                            </div>
+                          )}
                         </motion.button>
                       ))}
                     </AnimatePresence>
