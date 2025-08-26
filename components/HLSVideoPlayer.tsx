@@ -113,7 +113,8 @@ export function HLSVideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [media.hlsPlaylistUrl, startTime, videoKey, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media.hlsPlaylistUrl, startTime, videoKey]);
 
   const handleLoadedData = useCallback(() => {
     setIsLoading(false);
