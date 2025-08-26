@@ -353,13 +353,19 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       let data;
 
       if (appConfig.storage === StorageProvider.S3 && isVideo) {
-        const formData = new FormData();
-        formData.append('file', uploadFile.file);
-        formData.append('guestName', guestName);
-
+        // For S3 videos, first get a presigned URL by sending only metadata
         const presignedRes = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: uploadFile.file.name,
+            fileSize: uploadFile.file.size,
+            fileType: uploadFile.file.type,
+            guestName,
+            isVideo: true
+          }),
         });
 
         const presignedData = await presignedRes.json();
@@ -368,36 +374,33 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           throw new Error(presignedData.error || 'Failed to get upload URL');
         }
 
-        if (presignedData.uploadMethod === 'direct') {
-          setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 30 } : f)));
+        // Upload directly to S3 using the presigned URL
+        setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 30 } : f)));
 
-          const uploadRes = await fetch(presignedData.presignedUrl, {
-            method: 'PUT',
-            body: uploadFile.file,
-            headers: {
-              'Content-Type': uploadFile.file.type,
-            },
-          });
+        const uploadRes = await fetch(presignedData.presignedUrl, {
+          method: 'PUT',
+          body: uploadFile.file,
+          headers: {
+            'Content-Type': uploadFile.file.type,
+          },
+        });
 
-          if (!uploadRes.ok) {
-            throw new Error('Failed to upload video file');
-          }
-
-          setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 80 } : f)));
-
-          data = {
-            url: presignedData.publicUrl,
-            public_id: presignedData.publicUrl,
-            format: uploadFile.file.type.split('/')[1] || 'mp4',
-            resource_type: 'video',
-            guestName: presignedData.guestName,
-            uploadDate: new Date().toISOString(),
-            height: '480',
-            width: '720',
-          };
-        } else {
-          data = presignedData;
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload video file');
         }
+
+        setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress: 80 } : f)));
+
+        data = {
+          url: presignedData.publicUrl,
+          public_id: presignedData.publicUrl,
+          format: uploadFile.file.type.split('/')[1] || 'mp4',
+          resource_type: 'video',
+          guestName: presignedData.guestName,
+          uploadDate: new Date().toISOString(),
+          height: '480',
+          width: '720',
+        };
       } else {
         const formData = new FormData();
         formData.append('file', uploadFile.file);

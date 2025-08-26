@@ -67,6 +67,43 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
 }
 
 /**
+ * Validates metadata-only upload requests.
+ *
+ * @param body - JSON body containing file metadata
+ * @throws {ValidationError} If validation fails
+ */
+function validateMetadataRequest(body: any): { fileName: string; fileSize: number; fileType: string; guestName: string } {
+  const { fileName, fileSize, fileType, guestName } = body;
+
+  if (!fileName || typeof fileName !== 'string') {
+    throw new ValidationError('Valid file name is required', 'fileName');
+  }
+
+  if (!fileSize || typeof fileSize !== 'number') {
+    throw new ValidationError('Valid file size is required', 'fileSize');
+  }
+
+  if (!fileType || typeof fileType !== 'string') {
+    throw new ValidationError('Valid file type is required', 'fileType');
+  }
+
+  if (!fileType.startsWith('video/')) {
+    throw new ValidationError('Only video files are supported for this request type', 'fileType');
+  }
+
+  const trimmedGuestName = guestName?.trim() || '';
+  if (!trimmedGuestName) {
+    throw new ValidationError('Guest name is required', 'guestName');
+  }
+
+  if (trimmedGuestName.length > 100) {
+    throw new ValidationError('Guest name must be less than 100 characters', 'guestName');
+  }
+
+  return { fileName, fileSize, fileType, guestName: trimmedGuestName };
+}
+
+/**
  * Handles media upload requests using the configured storage provider.
  *
  * @param request - The incoming request containing file and guest name
@@ -122,6 +159,34 @@ export async function POST(
         });
       }
       // For images or small videos, continue with direct upload through Next.js
+    }
+
+    // Handle metadata-only requests for S3 videos
+    const contentType = request.headers.get('content-type');
+    if (contentType?.includes('application/json') && appConfig.storage === StorageProvider.S3) {
+      const body = await request.json();
+      const { fileName, fileSize, fileType, guestName } = validateMetadataRequest(body);
+
+      // Return presigned URL for direct S3 upload
+      const uploadData = await storage.generateVideoUploadUrl({
+        fileName,
+        fileSize,
+        fileType,
+        guestName,
+        videoId: Date.now().toString() // Generate a unique ID
+      });
+
+      return NextResponse.json({
+        url: uploadData.uploadUrl,
+        uploadMethod: 'direct',
+        presignedUrl: uploadData.uploadUrl,
+        publicUrl: uploadData.publicUrl,
+        guestName,
+        fileName
+      }, { 
+        status: 200,
+        headers: createRateLimitHeaders(rateLimitResult),
+      });
     }
 
     // Handle Cloudinary uploads or S3 image uploads through Next.js server
