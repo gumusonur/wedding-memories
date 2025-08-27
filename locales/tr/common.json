@@ -3,6 +3,10 @@
     "title": "Düğün Anıları",
     "noPhotos": "Henüz fotoğraf yok",
     "noPhotosDescription": "{{brideName}} & {{groomName}}'un özel gününden ilk anıyı sen paylaş!",
+    "welcome": "{{brideName}} & {{groomName}}'un Düğün Galerisine Hoş Geldiniz!",
+    "enterNamePrompt": "Lütfen {{brideName}} & {{groomName}}'un ekleyeceğiniz fotoğraflara isminizi verebilmeleri için adınızı paylaşın.",
+    "enterGallery": "Galeriye Gir",
+    "weddingMemories": "Düğün Anıları",
     "loadingPhotos": "Yeni fotoğraflar yükleniyor...",
     "photoCount": "{{count}} fotoğraf",
     "photoCount_plural": "{{count}} fotoğraf",
@@ -20,11 +24,13 @@
     "addPhotos": "Fotoğraf Ekle",
     "addingAs": "Şu isimle ekleniyor:",
     "notSet": "Ayarlanmamış",
-    "chooseOrDrag": "Fotoğraf seç veya sürükle bırak",
-    "chooseOrDragVideo": "Fotoğraf/video seç veya sürükle bırak",
-    "supportedFormats": "JPG, JPEG, PNG, GIF, WebP • Birden fazla dosya desteklenir",
-    "supportedFormatsWithVideo": "JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM • Boyut sınırı yok",
-    "dropMoreFiles": "Daha fazla dosya buraya bırakın",
+    "chooseOrDrag": "Fotoğraf seç",
+    "chooseOrDragVideo": "Fotoğraf/video seç",
+    "chooseOrDragDesktop": "Fotoğraf seç veya sürükle bırak",
+    "chooseOrDragVideoDesktop": "Fotoğraf/video seç veya sürükle bırak",
+    "supportedFormatsS3": "JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM • Boyut sınırı yok",
+    "supportedFormatsCloudinary": "JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM • Fotoğraf max 10MB, Video max 100MB",
+    "dropMoreFiles": "Dosyalarınızı buraya sürükleyin",
     "selectMultiple": "Birden Fazla Dosya Seç",
     "selectAll": "Tümünü Seç",
     "deselectAll": "Seçimi Kaldır",
@@ -41,12 +47,13 @@
     "cancel": "İptal",
     "addMore": "Daha Fazla Ekle",
     "photos": "Fotoğraflar",
+    "photoVideo": "Foto/Video",
     "managingFiles": "{{count}} Dosya Yönetiliyor",
     "selectedFiles": "Seçilen Dosyalar ({{count}})",
     "filesSuccessfullyAdded": "Dosyalar Başarıyla Eklendi!",
-    "filesAddedToGallery": "{{count}} dosya düğün galerisine eklendi. Dosyalarınızı görmek için aşağıdaki \"Galeriyi Görüntüle\" düğmesini kullanın.",
-    "filesAddedToGallery_plural": "{{count}} dosya düğün galerisine eklendi. Dosyalarınızı görmek için aşağıdaki \"Galeriyi Görüntüle\" düğmesini kullanın.",
-    "viewGallery": "Galeriyi Görüntüle ({{count}} eklendi)"
+    "filesAddedToGallery": "{{count}} dosya düğün galerisine eklendi. Dosyalarınızı görmek için aşağıdaki \"Galeriye Git\" düğmesini kullanın.",
+    "filesAddedToGallery_plural": "{{count}} dosya düğün galerisine eklendi. Dosyalarınızı görmek için aşağıdaki \"Galeriye Git\" düğmesini kullanın.",
+    "viewGallery": "Galeriye Git"
   },
   "welcome": {
     "title": "Düğün Galerimize Hoş Geldiniz!",
@@ -145,3 +152,4 @@
     "close": "Kapat"
   }
 }
+

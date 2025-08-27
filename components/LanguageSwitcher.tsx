@@ -42,9 +42,8 @@ export function LanguageSwitcher({ variant = 'default', className = '' }: Langua
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className={`${className} flex items-center gap-2`}>
+          <Button variant="ghost" size="sm" className={`${className} h-8 w-8 px-0`}>
             <span className="text-base">{languageFlags[language]}</span>
-            <span className="text-xs font-medium">{languageNames[language]}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[140px]">

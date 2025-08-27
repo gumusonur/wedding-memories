@@ -1,58 +1,6 @@
 @import 'tailwindcss';
 
-@theme {
-  --shadow-highlight: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-
-  --breakpoint-narrow: (max-aspect-ratio: 3/2);
-  --breakpoint-wide: (min-aspect-ratio: 3/2);
-  --breakpoint-taller-than-854: (min-height: 854px);
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-}
-
 @plugin "tailwindcss-animate";
-
-@supports (font: -apple-system-body) and (-webkit-appearance: none) {
-  img[loading='lazy'] {
-    clip-path: inset(0.6px);
-  }
-}
 
 @layer base {
   :root {
@@ -124,34 +72,85 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.439 0 0);
   }
-}
 
-@layer base {
   * {
     border-color: var(--border);
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
   }
 }
 
+@theme {
+  --shadow-highlight: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  --breakpoint-narrow: (max-aspect-ratio: 3/2);
+  --breakpoint-wide: (min-aspect-ratio: 3/2);
+  --breakpoint-taller-than-854: (min-height: 854px);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
 @layer utilities {
+  @supports (font: -apple-system-body) and (-webkit-appearance: none) {
+    img[loading='lazy'] {
+      clip-path: inset(0.6px);
+    }
+  }
+
   /* Dynamic viewport height support for Safari mobile */
   .h-screen-dynamic {
     height: 100vh; /* Fallback for older browsers */
   }
-  
+
   @supports (height: 100dvh) {
     .h-screen-dynamic {
       height: 100dvh; /* Dynamic viewport height for modern browsers */
     }
   }
-  
+
   .min-h-screen-dynamic {
     min-height: 100vh; /* Fallback for older browsers */
   }
-  
+
   @supports (min-height: 100dvh) {
     .min-h-screen-dynamic {
       min-height: 100dvh; /* Dynamic viewport height for modern browsers */
@@ -223,12 +222,12 @@
   .safe-area-inset-right {
     padding-right: env(safe-area-inset-right, 0px);
   }
-  
+
   /* Safari mobile bottom spacing utilities */
   .safari-bottom-safe {
     margin-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   /* iOS Safari UI compensation */
   @supports (-webkit-touch-callout: none) {
     .ios-safari-bottom {

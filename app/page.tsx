@@ -1,8 +1,7 @@
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { appConfig } from '../config';
 import type { MediaProps } from '../utils/types';
-import { ClientGalleryWrapper } from '@/components/ClientGalleryWrapper';
-import { MediaGallery } from '@/components/MediaGallery';
+import { WeddingGallery } from '@/components/WeddingGallery';
 import { storage } from '../storage';
 
 export const revalidate = 0;
@@ -52,22 +51,19 @@ async function fetchWeddingMedia(): Promise<MediaProps[]> {
 }
 
 /**
- * Home page component that displays the wedding media gallery.
+ * Home page component that displays the wedding media gallery or name input form.
  *
  * This page serves as the main entry point for the wedding memories application.
- * When guest isolation is disabled, it fetches all media at build time for optimal performance.
- * When guest isolation is enabled, it shows an empty gallery initially and lets the client
- * fetch media based on the guest name.
+ * It uses a client component to conditionally render either the name input form
+ * or the media gallery based on whether the guest name is set.
  *
- * @returns JSX element containing the media gallery with integrated modal
+ * @returns JSX element containing the media gallery with integrated modal or name input form
  */
 export default async function WeddingMediaHomePage() {
   // If guest isolation is enabled, start with empty array to let client-side filtering handle it
   const weddingMedia = appConfig.guestIsolation ? [] : await fetchWeddingMedia();
 
   return (
-    <ClientGalleryWrapper>
-      <MediaGallery initialMedia={weddingMedia} />
-    </ClientGalleryWrapper>
+    <WeddingGallery initialMedia={weddingMedia} />
   );
 }

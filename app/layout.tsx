@@ -1,7 +1,6 @@
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppLoader } from '@/components/AppLoader';
 import { ToasterProvider } from '@/components/ToasterProvider';
-import { WelcomeDialog } from '@/components/WelcomeDialog';
 import { I18nProvider } from '@/components/I18nProvider';
 import type { Metadata, Viewport } from 'next';
 import { appConfig } from '../config';
@@ -46,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <I18nProvider>
             <AppLoader>{children}</AppLoader>
             <ToasterProvider />
-            <WelcomeDialog />
           </I18nProvider>
         </ThemeProvider>
       </body>

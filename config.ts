@@ -11,7 +11,7 @@ export enum Language {
 export const appConfig = {
   brideName: 'Cathlene',
   groomName: 'Onur',
-  guestIsolation: true,
+  guestIsolation: false,
   storage: StorageProvider.S3,
   defaultLanguage: Language.English,
   supportedLanguages: [Language.English, Language.Turkish],

@@ -28,7 +28,6 @@ export function getOptimizedMediaUrl(
   
   if (appConfig.storage === StorageProvider.S3) {
     // For S3, return the presigned URL directly (publicId already contains the full presigned URL)
-    console.log(`[DEBUG] S3 getOptimizedMediaUrl - publicId: ${publicId.substring(0, 100)}...`);
     url = publicId;
   } else {
     if (resourceType === 'video') {
