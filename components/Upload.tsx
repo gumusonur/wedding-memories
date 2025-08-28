@@ -5,7 +5,12 @@ import Image from 'next/image';
 import { appConfig, StorageProvider } from '../config';
 
 import { Button } from './ui/button';
-import { useGuestName, useSetGuestName, useAddMedia } from '../store/useAppStore';
+import {
+  useGuestName,
+  useSetGuestName,
+  useAddMedia,
+  useMediaModalOpen,
+} from '../store/useAppStore';
 import {
   Drawer,
   DrawerClose,
@@ -57,6 +62,7 @@ import {
 import type { UploadFile, MediaProps } from '../utils/types';
 import { formatFileSize, getCompressionInfo } from '../utils/clientUtils';
 import { useI18n } from './I18nProvider';
+import { useSearchParams } from 'next/navigation';
 
 interface UploadProps {
   currentGuestName?: string;
@@ -65,6 +71,12 @@ interface UploadProps {
 export const Upload = ({ currentGuestName }: UploadProps) => {
   const guestName = useGuestName();
   const setGuestName = useSetGuestName();
+
+  const isMediaModalOpen = useMediaModalOpen();
+  const searchParams = useSearchParams();
+  const photoId = searchParams.get('photoId');
+
+  const isModalOpen = !!photoId || isMediaModalOpen;
   const addMedia = useAddMedia();
   const { t } = useI18n();
 
@@ -86,6 +98,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
 
   const validateName = (name: string): string | null => {
@@ -104,7 +117,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     };
 
     checkScreenSize();
-
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
@@ -115,7 +127,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
       return validateMediaFile(file, isS3Storage, !isS3Storage);
     } catch (error) {
-      console.warn('File validation error:', error);
       return false;
     }
   };
@@ -123,54 +134,59 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const createThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       try {
-        // For video files, create thumbnail only on desktop
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        // Video dosyaları için
         if (file.type.startsWith('video/')) {
-          console.log('Video file detected');
-          // On mobile, skip thumbnail creation (will use Image component with direct URL)
-          if (window.innerWidth < 1024) {
-            console.log('Mobile detected, skipping video thumbnail');
-            resolve('');
+          if (isMobile) {
+            // Mobile: Basit object URL kullan
+            const objectUrl = URL.createObjectURL(file);
+            resolve(objectUrl);
             return;
           }
-          
-          console.log('Desktop detected, creating video thumbnail');
-          // Desktop: Create canvas thumbnail
+
+          // Desktop: Canvas thumbnail
           const video = document.createElement('video');
           video.muted = true;
+          video.playsInline = true; // iOS için önemli
           video.preload = 'metadata';
-          video.crossOrigin = 'anonymous';
-          
+
+          const cleanup = () => {
+            if (video.src) {
+              URL.revokeObjectURL(video.src);
+            }
+          };
+
           const timeoutId = setTimeout(() => {
-            console.warn('Video thumbnail timeout');
+            cleanup();
             resolve('');
-          }, 5000);
-          
+          }, 8000);
+
           video.onloadedmetadata = () => {
             try {
-              console.log('Video metadata loaded, seeking to frame');
-              // Seek to 0.5 seconds or 10% of duration
-              video.currentTime = Math.min(0.5, video.duration * 0.1);
+              video.currentTime = Math.min(1, video.duration * 0.1);
             } catch (error) {
-              console.warn('Error seeking:', error);
               clearTimeout(timeoutId);
+              cleanup();
               resolve('');
             }
           };
-          
+
           video.onseeked = () => {
             try {
-              console.log('Video seeked, creating canvas thumbnail');
               const canvas = document.createElement('canvas');
               const size = 200;
               canvas.width = size;
               canvas.height = size;
               const ctx = canvas.getContext('2d');
-              
+
               if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-                // Simple center crop
                 const aspectRatio = video.videoWidth / video.videoHeight;
-                let sx = 0, sy = 0, sWidth = video.videoWidth, sHeight = video.videoHeight;
-                
+                let sx = 0,
+                  sy = 0,
+                  sWidth = video.videoWidth,
+                  sHeight = video.videoHeight;
+
                 if (aspectRatio > 1) {
                   sWidth = video.videoHeight;
                   sx = (video.videoWidth - sWidth) / 2;
@@ -178,56 +194,76 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   sHeight = video.videoWidth;
                   sy = (video.videoHeight - sHeight) / 2;
                 }
-                
-                console.log('Drawing video frame to canvas');
+
                 ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, size, size);
-                const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
-                
+                const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+
                 clearTimeout(timeoutId);
-                URL.revokeObjectURL(video.src);
-                console.log('Thumbnail created successfully');
+                cleanup();
                 resolve(thumbnail);
               } else {
-                console.warn('Invalid video dimensions');
                 clearTimeout(timeoutId);
+                cleanup();
                 resolve('');
               }
             } catch (error) {
-              console.warn('Canvas error:', error);
               clearTimeout(timeoutId);
+              cleanup();
               resolve('');
             }
           };
-          
-          video.onerror = () => {
-            console.warn('Video load error');
+
+          video.onerror = (error) => {
             clearTimeout(timeoutId);
+            cleanup();
             resolve('');
           };
-          
+
           video.src = URL.createObjectURL(file);
           return;
-        } else {
-          // For image files, use FileReader as before
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const result = e.target?.result;
-            if (result && typeof result === 'string') {
-              resolve(result);
-            } else {
-              console.warn('Thumbnail creation failed - no result for:', file.name);
-              resolve(''); // Return empty string instead of rejecting
-            }
-          };
-          reader.onerror = () => {
-            console.warn('Thumbnail creation failed for:', file.name);
-            resolve(''); // Return empty string instead of rejecting
-          };
-          reader.readAsDataURL(file);
         }
+
+        // Resim dosyaları için - iOS'te daha güvenli yaklaşım
+
+        // iOS'te büyük resimler için FileReader sorunlu olabiliyor
+        // Object URL her durumda daha güvenli
+        if (isMobile || file.size > 5 * 1024 * 1024) {
+          // 5MB üzeri dosyalar için
+          try {
+            const objectUrl = URL.createObjectURL(file);
+            resolve(objectUrl);
+          } catch (error) {
+            resolve('');
+          }
+          return;
+        }
+
+        // Desktop ve küçük dosyalar için FileReader
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const result = e.target?.result;
+          if (result && typeof result === 'string') {
+            resolve(result);
+          } else {
+            resolve('');
+          }
+        };
+
+        reader.onerror = (error) => {
+          // Fallback olarak object URL dene
+          try {
+            const objectUrl = URL.createObjectURL(file);
+            resolve(objectUrl);
+          } catch (fallbackError) {
+            resolve('');
+          }
+        };
+
+        reader.readAsDataURL(file);
       } catch (error) {
-        console.warn('Thumbnail creation not supported:', error);
-        resolve(''); // Return empty string instead of rejecting
+        // Son çare olarak boş string döndür
+        resolve('');
       }
     });
   };
@@ -263,9 +299,10 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
       const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      const hash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+      return hash;
     } catch (error) {
-      console.warn('Hash creation failed, using fallback:', error);
       return `error_${file.name}_${file.size}_${file.lastModified}`;
     }
   };
@@ -282,87 +319,71 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   };
 
   const handleFileSelect = async (selectedFiles: FileList | null) => {
-    console.log('handleFileSelect called with:', selectedFiles);
     if (!selectedFiles) {
-      console.log('No files selected');
-      toast({
-        title: 'Debug: No files selected',
-        variant: 'destructive'
-      });
       return;
     }
 
-    console.log('Number of files selected:', selectedFiles.length);
-    toast({
-      title: `Debug: ${selectedFiles.length} files selected`,
-    });
     const isS3Storage = appConfig.storage === StorageProvider.S3;
 
     const validFiles = Array.from(selectedFiles).filter((file) => {
-      if (!isValidMediaFile(file)) {
-        const supportedFormats = isS3Storage
-          ? 'JPG, JPEG, PNG, GIF, WebP, MP4, MOV, AVI, WebM'
-          : 'JPG, JPEG, PNG, GIF, WebP';
-
-        toast({
-          variant: 'destructive',
-          title: t('errors.invalidFileType', { fileName: file.name, supportedFormats }),
-        });
+      try {
+        return isValidMediaFile(file);
+      } catch (error) {
         return false;
       }
-      return true;
     });
 
+    // Clear the file input value to allow selecting the same files again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     if (validFiles.length === 0) {
-      console.log('No valid files after filtering');
       toast({
-        title: 'Debug: No valid files after filtering',
-        variant: 'destructive'
+        variant: 'destructive',
+        title: t('errors.invalidFiles'),
+        description: t('errors.invalidFilesDescription'),
       });
       return;
     }
-
-    console.log('Valid files:', validFiles.length);
-    toast({
-      title: `Debug: ${validFiles.length} valid files`,
-    });
     const newFiles: UploadFile[] = [];
     const duplicateFiles: string[] = [];
 
     for (const file of validFiles) {
       try {
+        // Step 1: Create hash
         const hash = await createFileHash(file);
+        if (!hash || hash.startsWith('error_')) {
+          throw new Error(`Hash creation failed: ${hash}`);
+        }
 
+        // Step 2: Check duplicates
         if (isDuplicateFile(file, hash)) {
           duplicateFiles.push(file.name);
           continue;
         }
 
+        // Step 3: Create thumbnail
         let thumbnail = '';
         try {
-          console.log(`Creating thumbnail for: ${file.name}`);
           thumbnail = await createThumbnail(file);
-          console.log(`Thumbnail created for: ${file.name}, length: ${thumbnail.length}`);
         } catch (error) {
-          console.warn(`Thumbnail creation failed for ${file.name}:`, error);
-          // Continue without thumbnail - Safari might not support certain image types
+          // Continue without thumbnail - not critical
         }
 
-        newFiles.push({
+        // Step 4: Create upload file object
+        const uploadFile = {
           file,
           id: Math.random().toString(36).substring(2, 11),
           progress: 0,
-          status: 'pending',
+          status: 'pending' as const,
           thumbnail,
           hash,
-        });
+        };
+
+        newFiles.push(uploadFile);
       } catch (error) {
-        console.error(`Failed to process file ${file.name}:`, error);
-        toast({
-          variant: 'destructive',
-          title: t('errors.fileProcessingError'),
-          description: t('errors.fileProcessingErrorDescription', { fileName: file.name }),
-        });
+        // Skip this file but continue with others
       }
     }
 
@@ -371,39 +392,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       toast({
         variant: 'destructive',
         title: t('errors.duplicateFiles'),
-        description: t('errors.duplicateFilesDescription', {
-          count: duplicateFiles.length,
-          fileNames:
-            duplicateFiles.slice(0, 2).join(', ') +
-            (duplicateFiles.length > 2 ? ` and ${duplicateFiles.length - 2} more` : ''),
-        }),
+        description: t('errors.duplicateFilesDescription', { count: duplicateFiles.length }),
       });
     }
 
     if (newFiles.length > 0) {
-      console.log('Adding new files to state:', newFiles.length);
+      setFiles((prev) => [...prev, ...newFiles]);
       toast({
-        title: `Debug: Adding ${newFiles.length} files to state`,
+        title: t('success.filesSelected'),
+        description: t('success.filesSelectedDescription', { count: newFiles.length }),
       });
-      setFiles((prev) => {
-        console.log('Previous files:', prev.length, 'New files:', newFiles.length);
-        return [...prev, ...newFiles];
-      });
-
-      if (duplicateFiles.length === 0) {
-        toast({
-          title: t('success.filesAdded'),
-          description: t('success.filesAddedDescription', { count: newFiles.length }),
-        });
-      } else {
-        toast({
-          title: t('success.newFilesAdded'),
-          description: t('success.newFilesAddedDescription', {
-            count: newFiles.length,
-            duplicateCount: duplicateFiles.length,
-          }),
-        });
-      }
     }
   };
 
@@ -450,14 +448,17 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   };
 
   const removeSelectedFiles = () => {
+    const removedCount = selectedFiles.size;
     setFiles((prev) => prev.filter((f) => !selectedFiles.has(f.id)));
     setSelectedFiles(new Set());
     setIsSelectionMode(false);
 
-    toast({
-      title: t('success.filesRemoved'),
-      description: t('success.filesRemovedDescription', { count: selectedFiles.size }),
-    });
+    if (removedCount > 0) {
+      toast({
+        title: t('success.filesRemoved'),
+        description: t('success.filesRemovedDescription', { count: removedCount }),
+      });
+    }
   };
 
   const triggerFileInput = () => {
@@ -563,11 +564,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           duration: data.duration,
         };
 
-        addMedia(newMedia);
-
-        toast({
-          title: t('success.mediaAddedSuccessfully'),
-          description: t('success.mediaAddedDescription', { fileName: uploadFile.file.name }),
+        // Add to global store with queueMicrotask to avoid setState during render
+        queueMicrotask(() => {
+          addMedia(newMedia);
         });
       }
     } catch (error) {
@@ -582,11 +581,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
             : f
         )
       );
-      toast({
-        variant: 'destructive',
-        title: t('errors.uploadFailed'),
-        description: t('errors.uploadFailedDescription', { fileName: uploadFile.file.name }),
-      });
     }
   };
 
@@ -609,6 +603,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     await Promise.all(pendingFiles.map((file) => uploadFile(file)));
 
     setIsUploading(false);
+
+    // Show success toast after all uploads complete
+    const successfulUploads = files.filter((f) => f.status === 'success').length;
+    if (successfulUploads > 0) {
+      toast({
+        title: t('success.uploadComplete'),
+        description: t('success.uploadCompleteDescription', { count: successfulUploads }),
+      });
+    }
   };
 
   const handleNameChange = async () => {
@@ -634,11 +637,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
     setGuestName(sanitizedName);
     setIsEditingName(false);
     setIsUpdatingName(false);
-
-    toast({
-      title: t('success.nameUpdated'),
-      description: t('success.nameUpdatedDescription', { name: sanitizedName }),
-    });
   };
 
   // Real-time validation handler
@@ -686,49 +684,31 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         </div>
       )}
 
-      {/* Drop area - simplified */}
+      {/* Drop area - iOS optimized */}
       <div
         className={cn(
           'flex-1 rounded-lg transition-colors relative flex items-center justify-center',
           !hasFiles &&
-            'border border-border/30 hover:border-border/60 hover:bg-muted/20 p-6 text-center',
+            'border border-border/30 hover:border-border/60 hover:bg-muted/20 p-6 text-center cursor-pointer touch-manipulation',
           hasFiles &&
             'border border-border/50 bg-muted/5 p-3 flex-col items-stretch justify-start overflow-y-auto'
         )}
+        onDrop={(e) => {
+          e.preventDefault();
+          handleFileSelect(e.dataTransfer.files);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+        }}
+        onClick={() => {
+          if (!hasFiles) {
+            triggerFileInput();
+          }
+        }}
       >
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={
-            appConfig.storage === StorageProvider.S3
-              ? 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mov,video/quicktime,video/avi,video/webm,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm'
-              : 'image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp'
-          }
-          onChange={(e) => handleFileSelect(e.target.files)}
-          className="hidden"
-          key={files.length}
-        />
-
-        {/* Overlay input for drag & drop */}
-        <input
-          type="file"
-          multiple
-          accept={
-            appConfig.storage === StorageProvider.S3
-              ? 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mov,video/quicktime,video/avi,video/webm,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm'
-              : 'image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp'
-          }
-          onChange={(e) => handleFileSelect(e.target.files)}
-          className={cn(
-            'absolute opacity-0 cursor-pointer z-10',
-            !hasFiles && 'inset-0',
-            hasFiles && 'top-0 left-0 right-32 h-16'
-          )}
-          key={`overlay-${files.length}`}
-        />
-
         {!hasFiles ? (
           // Empty state - show upload prompt
           <div className="flex flex-col items-center gap-2">
@@ -898,7 +878,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                       />
                     ) : uploadFile.file.type.startsWith('video/') ? (
                       // Mobile: Use Image with video URL, Desktop: Use placeholder until thumbnail loads
-                      window.innerWidth >= 1024 ? (
+                      isLargeScreen ? (
                         <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center">
                           <div className="text-2xl mb-1">🎬</div>
                           <div className="text-xs text-gray-600 text-center px-1">
@@ -1008,13 +988,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                   </div>
                 </div>
               ))}
-
               {/* Add more photos button */}
               {!isSelectionMode && (
                 <div className="relative rounded-lg bg-background transition-all duration-200 p-0.5 border border-dashed border-muted-foreground/50 hover:border-primary/50 hover:bg-muted/25">
                   <div
-                    className="relative aspect-square group cursor-pointer overflow-hidden rounded-md flex items-center justify-center bg-muted/20 hover:bg-muted/40 transition-all duration-200"
-                    onClick={triggerFileInput}
+                    className="relative aspect-square group cursor-pointer overflow-hidden rounded-md flex items-center justify-center bg-muted/20 hover:bg-muted/40 transition-all duration-200 touch-manipulation"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      triggerFileInput();
+                    }}
                   >
                     <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
                       <Plus className="w-6 h-6" />
@@ -1055,6 +1038,16 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mov,video/quicktime,video/avi,video/webm"
+        onChange={(e) => handleFileSelect(e.target.files)}
+        className="hidden"
+        id="wedding-memories-file-input"
+      />
     </div>
   );
 
@@ -1066,6 +1059,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       <Button
         ref={ref}
         {...props}
+        onClick={props.onClick}
         size="lg"
         className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
                    h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
@@ -1234,7 +1228,9 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
   // Mobile/Tablet: Use Drawer
   return (
-    <>
+    <div
+      className={`fixed bottom-30 right-6 z-50 transition-opacity duration-200 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+    >
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerTrigger asChild>
           <TriggerButton />
@@ -1386,6 +1382,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
