@@ -84,7 +84,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
   const previousGuestName = useRef<string | null>(null);
   const { t, language } = useI18n();
   const { toast } = useToast();
-  
+
   const [name, setName] = useState('');
   const [isNameValid, setIsNameValid] = useState(false);
 
@@ -178,14 +178,15 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
       toast({
         variant: 'destructive',
         title: t('errors.validationError'),
-        description: error instanceof Error ? error.message : t('errors.validationErrorDescription'),
+        description:
+          error instanceof Error ? error.message : t('errors.validationErrorDescription'),
       });
     }
   };
 
   // Show name input when guest name hasn't been set yet
   const shouldShowNameInput = hasHydrated && !guestName;
-  
+
   if (shouldShowNameInput) {
     return (
       <div className="max-w-md mx-auto py-16 px-4">
@@ -198,19 +199,21 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
             </h1>
             <p className="text-muted-foreground">{t('gallery.weddingMemories')}</p>
           </div>
-          
+
           <div className="bg-card rounded-lg border p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-2">{t('gallery.welcome', { 
-              brideName: appConfig.brideName, 
-              groomName: appConfig.groomName 
-            })}</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              {t('gallery.welcome', {
+                brideName: appConfig.brideName,
+                groomName: appConfig.groomName,
+              })}
+            </h2>
             <p className="text-muted-foreground mb-6">
-              {t('gallery.enterNamePrompt', { 
-                brideName: appConfig.brideName, 
-                groomName: appConfig.groomName 
+              {t('gallery.enterNamePrompt', {
+                brideName: appConfig.brideName,
+                groomName: appConfig.groomName,
               })}
             </p>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <GuestNameInput
                 value={name}
@@ -229,20 +232,14 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
                   }
                 }}
               />
-              
-              <Button 
-                type="submit" 
-                className="w-full h-11 text-base"
-                disabled={!isNameValid}
-              >
+
+              <Button type="submit" className="w-full h-11 text-base" disabled={!isNameValid}>
                 {t('gallery.enterGallery')}
               </Button>
             </form>
           </div>
-          
-          <p className="text-xs text-muted-foreground">
-            {t('welcome.rememberName')}
-          </p>
+
+          <p className="text-xs text-muted-foreground">{t('welcome.rememberName')}</p>
         </div>
       </div>
     );
@@ -250,7 +247,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
 
   // For guest isolation mode, show loading state while fetching media
   const isFetchingMedia = appConfig.guestIsolation && guestName && media.length === 0 && isLoading;
-  
+
   if (isFetchingMedia) {
     return (
       <div
@@ -272,16 +269,18 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
 
   if (media.length === 0 && !isLoading) {
     return (
-      <div className="text-center py-24 text-muted-foreground" role="status" aria-live="polite">
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t('gallery.noPhotos')}</h2>
-          <p className="text-lg">
-            {t('gallery.noPhotosDescription', { 
-              brideName: appConfig.brideName, 
-              groomName: appConfig.groomName 
-            })}
-          </p>
-        </div>
+      <div
+        className="absolute top-1/2 left-1/2 -translate-1/2 w-full text-center text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
+        <h2 className="text-2xl font-semibold">{t('gallery.noPhotos')}</h2>
+        <p className="text-lg">
+          {t('gallery.noPhotosDescription', {
+            brideName: appConfig.brideName,
+            groomName: appConfig.groomName,
+          })}
+        </p>
       </div>
     );
   }
@@ -319,12 +318,14 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
             onKeyDown={(e) => handleMediaKeyNavigation(e, index, openMediaModal)}
             onMouseEnter={() => prefetchMediaOnInteraction(mediaItem, 'full')}
             tabIndex={0}
-            aria-label={mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest' 
-              ? t('gallery.openPhotoWithGuest', { 
-                  index: index + 1, 
-                  guestName: mediaItem.guestName 
-                })
-              : t('gallery.openPhoto', { index: index + 1 })}
+            aria-label={
+              mediaItem.guestName && mediaItem.guestName !== 'Unknown Guest'
+                ? t('gallery.openPhotoWithGuest', {
+                    index: index + 1,
+                    guestName: mediaItem.guestName,
+                  })
+                : t('gallery.openPhoto', { index: index + 1 })
+            }
           >
             <StorageAwareMedia
               {...getOptimizedMediaProps(mediaItem, 'gallery', { priority: index < 6 })}
@@ -341,7 +342,9 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
                     <p>{t('gallery.sharedBy', { name: mediaItem.guestName })}</p>
                   )}
                   {mediaItem.uploadDate && (
-                    <p className="text-white/80">{formatUploadDate(mediaItem.uploadDate, language)}</p>
+                    <p className="text-white/80">
+                      {formatUploadDate(mediaItem.uploadDate, language)}
+                    </p>
                   )}
                 </div>
               </div>

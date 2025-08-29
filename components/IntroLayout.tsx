@@ -10,7 +10,7 @@ interface IntroLayoutProps {
 
 export function IntroLayout({ children }: IntroLayoutProps) {
   return (
-    <div className="flex flex-col justify-between h-screen">
+    <div className="flex flex-col justify-between h-dvh">
       <div className="fixed top-4 right-4">
         <SettingsPanel />
       </div>
@@ -21,4 +21,3 @@ export function IntroLayout({ children }: IntroLayoutProps) {
     </div>
   );
 }
-
