@@ -85,4 +85,4 @@ const nextConfig = {
   serverExternalPackages: ['ffmpeg-static', 'ffprobe-static'],
 };
 
-module.exports = nextConfig;
+export default nextConfig;

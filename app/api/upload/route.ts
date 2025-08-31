@@ -40,18 +40,12 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
     throw new ValidationError('Valid file is required', 'file');
   }
 
-  const isS3 = appConfig.storage === StorageProvider.S3;
   const isValidImage = file.type.startsWith('image/');
   const isValidVideo = file.type.startsWith('video/');
 
-  if (isS3) {
-    if (!isValidImage && !isValidVideo) {
-      throw new ValidationError('File must be a valid image or video format', 'file');
-    }
-  } else {
-    if (!isValidImage) {
-      throw new ValidationError('File must be a valid image format', 'file');
-    }
+  // Both Cloudinary and S3 now support videos
+  if (!isValidImage && !isValidVideo) {
+    throw new ValidationError('File must be a valid image or video format', 'file');
   }
 
   const trimmedGuestName = guestName?.trim() || '';
@@ -72,8 +66,12 @@ function validateUploadRequest(formData: FormData): { file: File; guestName: str
  * @param body - JSON body containing file metadata
  * @throws {ValidationError} If validation fails
  */
-function validateMetadataRequest(body: any): { fileName: string; fileSize: number; fileType: string; guestName: string } {
-  const { fileName, fileSize, fileType, guestName } = body;
+function validateMetadataRequest(body: unknown): { fileName: string; fileSize: number; fileType: string; guestName: string } {
+  if (!body || typeof body !== 'object') {
+    throw new ValidationError('Invalid request body', 'body');
+  }
+  
+  const { fileName, fileSize, fileType, guestName } = body as Record<string, unknown>;
 
   if (!fileName || typeof fileName !== 'string') {
     throw new ValidationError('Valid file name is required', 'fileName');
@@ -91,7 +89,11 @@ function validateMetadataRequest(body: any): { fileName: string; fileSize: numbe
     throw new ValidationError('Only video files are supported for this request type', 'fileType');
   }
 
-  const trimmedGuestName = guestName?.trim() || '';
+  if (typeof guestName !== 'string') {
+    throw new ValidationError('Guest name must be a string', 'guestName');
+  }
+  
+  const trimmedGuestName = guestName.trim();
   if (!trimmedGuestName) {
     throw new ValidationError('Guest name is required', 'guestName');
   }

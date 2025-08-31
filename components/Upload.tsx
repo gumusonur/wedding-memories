@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { appConfig, StorageProvider } from '../config';
 
@@ -47,7 +47,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Dialog,
@@ -73,8 +72,15 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const setGuestName = useSetGuestName();
 
   const isMediaModalOpen = useMediaModalOpen();
-  const searchParams = useSearchParams();
-  const photoId = searchParams.get('photoId');
+
+  let photoId: string | null = null;
+  try {
+    const searchParams = useSearchParams();
+    photoId = searchParams?.get('photoId') || null;
+  } catch {
+    // Ignore search params error during SSR
+    photoId = null;
+  }
 
   const isModalOpen = !!photoId || isMediaModalOpen;
   const addMedia = useAddMedia();
@@ -124,28 +130,28 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
   const isValidMediaFile = (file: File): boolean => {
     try {
       const isS3Storage = appConfig.storage === StorageProvider.S3;
-
-      return validateMediaFile(file, isS3Storage, !isS3Storage);
-    } catch (error) {
+      
+      
+      // Cloudinary: allowVideos=true, enforceFileSize=true
+      // S3: allowVideos=true, enforceFileSize=false  
+      return validateMediaFile(file, true, !isS3Storage);
+    } catch {
       return false;
     }
   };
 
   const createThumbnail = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-        // Video dosyaları için
         if (file.type.startsWith('video/')) {
           if (isMobile) {
-            // Mobile: Basit object URL kullan
             const objectUrl = URL.createObjectURL(file);
             resolve(objectUrl);
             return;
           }
 
-          // Desktop: Canvas thumbnail
           const video = document.createElement('video');
           video.muted = true;
           video.playsInline = true; // iOS için önemli
@@ -165,7 +171,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           video.onloadedmetadata = () => {
             try {
               video.currentTime = Math.min(1, video.duration * 0.1);
-            } catch (error) {
+            } catch {
               clearTimeout(timeoutId);
               cleanup();
               resolve('');
@@ -206,14 +212,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                 cleanup();
                 resolve('');
               }
-            } catch (error) {
+            } catch {
               clearTimeout(timeoutId);
               cleanup();
               resolve('');
             }
           };
 
-          video.onerror = (error) => {
+          video.onerror = (_error) => {
             clearTimeout(timeoutId);
             cleanup();
             resolve('');
@@ -232,7 +238,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           try {
             const objectUrl = URL.createObjectURL(file);
             resolve(objectUrl);
-          } catch (error) {
+          } catch {
             resolve('');
           }
           return;
@@ -250,18 +256,18 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           }
         };
 
-        reader.onerror = (error) => {
+        reader.onerror = (_error) => {
           // Fallback olarak object URL dene
           try {
             const objectUrl = URL.createObjectURL(file);
             resolve(objectUrl);
-          } catch (fallbackError) {
+          } catch {
             resolve('');
           }
         };
 
         reader.readAsDataURL(file);
-      } catch (error) {
+      } catch {
         // Son çare olarak boş string döndür
         resolve('');
       }
@@ -302,7 +308,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       const hash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       return hash;
-    } catch (error) {
+    } catch {
       return `error_${file.name}_${file.size}_${file.lastModified}`;
     }
   };
@@ -323,12 +329,10 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
       return;
     }
 
-    const isS3Storage = appConfig.storage === StorageProvider.S3;
-
     const validFiles = Array.from(selectedFiles).filter((file) => {
       try {
         return isValidMediaFile(file);
-      } catch (error) {
+      } catch {
         return false;
       }
     });
@@ -351,27 +355,22 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
     for (const file of validFiles) {
       try {
-        // Step 1: Create hash
         const hash = await createFileHash(file);
         if (!hash || hash.startsWith('error_')) {
           throw new Error(`Hash creation failed: ${hash}`);
         }
 
-        // Step 2: Check duplicates
         if (isDuplicateFile(file, hash)) {
           duplicateFiles.push(file.name);
           continue;
         }
 
-        // Step 3: Create thumbnail
         let thumbnail = '';
         try {
           thumbnail = await createThumbnail(file);
-        } catch (error) {
+        } catch {
           // Continue without thumbnail - not critical
         }
-
-        // Step 4: Create upload file object
         const uploadFile = {
           file,
           id: Math.random().toString(36).substring(2, 11),
@@ -382,7 +381,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         };
 
         newFiles.push(uploadFile);
-      } catch (error) {
+      } catch {
         // Skip this file but continue with others
       }
     }
@@ -569,14 +568,14 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
           addMedia(newMedia);
         });
       }
-    } catch (error) {
+    } catch (uploadError) {
       setFiles((prev) =>
         prev.map((f) =>
           f.id === uploadFile.id
             ? {
                 ...f,
                 status: 'error',
-                error: error instanceof Error ? error.message : t('errors.uploadFailed'),
+                error: uploadError instanceof Error ? uploadError.message : t('errors.uploadFailed'),
               }
             : f
         )
@@ -616,8 +615,6 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
 
   const handleNameChange = async () => {
     const rawValue = currentNameValue;
-    const nameValue = rawValue.trim();
-
     // Final validation before submitting
     const error = validateName(rawValue);
     if (error) {
@@ -849,7 +846,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
                         }
                       }
                     }}
-                    onTouchStart={(e) => {
+                    onTouchStart={(_e) => {
                       if (!isSelectionMode && uploadFile.status === 'pending') {
                         // Mobile: Long press starts multi-select
                         const touchTimer = setTimeout(() => {
@@ -1061,7 +1058,7 @@ export const Upload = ({ currentGuestName }: UploadProps) => {
         {...props}
         onClick={props.onClick}
         size="lg"
-        className="shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
+        className="fixed bottom-14 right-4 shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 
                    h-14 px-5 py-3 rounded-full flex items-center gap-3 text-sm font-medium
                    md:h-12 md:px-6 md:py-3 md:rounded-lg md:gap-2 md:text-sm md:font-medium"
       >

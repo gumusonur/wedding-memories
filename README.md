@@ -2,7 +2,9 @@
 
 A modern, accessible wedding memories gallery supporting **both photos and videos** with multi-storage backend support. Built with Next.js, supports Cloudinary and S3/Wasabi storage providers, and features full keyboard navigation and exceptional accessibility.
 
-🌐 **[Live Demo](https://wedding.onurgumus.com)**
+🌐 **[Live Demo](https://wedding.onurgumus.com)** | 📋 **[Changelog](CHANGELOG.md)** | 🚀 **v0.1.0-beta.1**
+
+> 🎯 **Beta**: Enhanced video support, improved code quality, and open source preparation.
 
 ## ✨ Features
 

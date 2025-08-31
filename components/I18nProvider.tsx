@@ -8,7 +8,7 @@ import '../lib/i18n';
 interface I18nContextType {
   language: Language;
   setLanguage: (language: Language) => void;
-  t: (key: string, options?: any) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
   isLoading: boolean;
 }
 

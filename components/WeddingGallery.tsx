@@ -5,9 +5,10 @@ import { GuestNameForm } from './GuestNameForm';
 import { IntroLayout } from './IntroLayout';
 import { GalleryLayout } from './GalleryLayout';
 import { MediaGallery } from './MediaGallery';
+import { MediaProps } from '../utils/types';
 
 interface WeddingGalleryProps {
-  initialMedia: any[];
+  initialMedia: MediaProps[];
 }
 
 export function WeddingGallery({ initialMedia }: WeddingGalleryProps) {

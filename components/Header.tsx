@@ -3,9 +3,9 @@
 import { appConfig } from '@/config';
 import { SettingsPanel } from './SettingsPanel';
 import { t } from 'i18next';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-export const Header = (props: {}) => {
+export const Header = (_props: {}) => {
   const headerRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
 

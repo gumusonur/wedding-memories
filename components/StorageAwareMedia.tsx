@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from 'react';
 import { appConfig, StorageProvider } from '../config';
 import { useI18n } from './I18nProvider';
 import type { MediaProps } from '../utils/types';
-import { Play } from 'lucide-react';
+import { Play, Video } from 'lucide-react';
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -63,9 +63,9 @@ export function StorageAwareMedia({
   poster,
   controls,
   context = 'gallery',
-  videoId,
-  duration,
-  guestName,
+  videoId: _videoId,
+  duration: _duration,
+  guestName: _guestName,
 }: StorageAwareMediaProps) {
   const isCloudinary = appConfig.storage === StorageProvider.Cloudinary;
   const widthNum = parseInt(width, 10);
@@ -74,15 +74,16 @@ export function StorageAwareMedia({
 
   const [isLoading, setIsLoading] = useState(() => {
     if (typeof window === 'undefined') return false;
+    // For modal context, don't show loading state initially
+    if (context === 'modal') return false;
     return true;
   });
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasStarted, setHasStarted] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
-  const isGalleryView = !controls;
+  const isGalleryView = context === 'gallery' ? !controls : false;
 
   useEffect(() => {
     const mobile = isMobileDevice();
@@ -158,7 +159,6 @@ export function StorageAwareMedia({
   }, [resource_type, isGalleryView, context, src]);
 
   const handlePlay = () => {
-    setHasStarted(true);
     const video = videoRef.current;
     if (video) {
       // Ensure video is ready for playback
@@ -205,9 +205,7 @@ export function StorageAwareMedia({
         onKeyDown={onKeyDown}
       >
         {isLoading && !loadError && (
-          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
-            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
-          </div>
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg" />
         )}
 
         {loadError && (
@@ -225,8 +223,8 @@ export function StorageAwareMedia({
           </div>
         )}
 
-        {/* Play overlay for gallery view - more prominent without poster */}
-        {isGalleryView && !isLoading && !loadError && (
+        {/* Play overlay for gallery view */}
+        {context === 'gallery' && !controls && !isLoading && !loadError && (
           <div
             className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-200 rounded-lg flex items-center justify-center overflow-hidden"
             onClick={(e) => {
@@ -258,24 +256,16 @@ export function StorageAwareMedia({
               }
             }}
           >
-            <div
-              className={`bg-black/70 rounded-full opacity-90 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm shadow-lg ${
-                context === 'thumb' ? 'p-1' : 'p-4'
-              }`}
-            >
-              <Play
-                className={`text-white ${context === 'thumb' ? 'w-2 h-2' : 'w-4 h-4'}`}
-                fill="white"
-              />
+            <div className="bg-black/70 rounded-full opacity-90 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm shadow-lg p-4">
+              <Play className="text-white w-4 h-4" fill="white" />
             </div>
-            {/* Video indicator badge - smaller for thumbs */}
-            {context !== 'thumb' && (
-              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
-                VIDEO
-              </div>
-            )}
           </div>
         )}
+
+        {/* Video indicator icon - always visible for videos */}
+        <Video
+          className={`absolute ${context === 'thumb' ? 'top-1 right-1 w-3 h-3' : 'top-2 right-2 w-4 h-4'} text-white drop-shadow-lg z-10`}
+        />
 
         <video
           ref={videoRef}
@@ -305,13 +295,41 @@ export function StorageAwareMedia({
 
   // For Cloudinary Images, use Next.js Image with optimization
   if (isCloudinary) {
+    // For modal context, render image directly without wrapper
+    if (context === 'modal') {
+      return (
+        <Image
+          src={src}
+          alt={alt}
+          width={widthNum}
+          height={heightNum}
+          className={`${className} transition-opacity duration-300`}
+          sizes={sizes}
+          priority={priority}
+          loading={priority ? 'eager' : 'lazy'}
+          placeholder={blurDataUrl ? 'blur' : 'empty'}
+          blurDataURL={blurDataUrl}
+          style={style}
+          onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          tabIndex={tabIndex}
+          onKeyDown={onKeyDown}
+          onLoad={() => {
+            setIsLoading(false);
+            onLoad?.();
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          draggable={draggable}
+        />
+      );
+    }
+    
+    // For gallery/thumb contexts, use wrapper with aspect ratio
     return (
-      <div className="relative" style={{ aspectRatio: `${widthNum}/${heightNum}` }}>
+      <div className="relative" style={context === 'thumb' ? { width: '80px', height: '80px' } : { aspectRatio: `${widthNum}/${heightNum}` }}>
         {/* Loading skeleton */}
         {isLoading && (
-          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
-            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
-          </div>
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg" />
         )}
 
         <Image
@@ -342,13 +360,43 @@ export function StorageAwareMedia({
   }
 
   // For S3/Wasabi Images, use direct img tag
+  // For modal context, render image directly without wrapper
+  if (context === 'modal') {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={src}
+        alt={alt}
+        width={widthNum}
+        height={heightNum}
+        className={`${className} transition-opacity duration-300`}
+        style={{
+          objectFit: 'contain',
+          objectPosition: 'center',
+          ...style,
+        }}
+        loading={priority ? 'eager' : 'lazy'}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        tabIndex={tabIndex}
+        onKeyDown={onKeyDown}
+        onLoad={() => {
+          setIsLoading(false);
+          onLoad?.();
+        }}
+        onLoadStart={() => setIsLoading(true)}
+        draggable={draggable}
+        crossOrigin="anonymous"
+      />
+    );
+  }
+  
+  // For gallery/thumb contexts, use wrapper with aspect ratio
   return (
-    <div className="relative" style={{ aspectRatio: `${widthNum}/${heightNum}` }}>
+    <div className="relative" style={context === 'thumb' ? { width: '80px', height: '80px' } : { aspectRatio: `${widthNum}/${heightNum}` }}>
       {/* Loading skeleton */}
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
-          <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse" />
-        </div>
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg" />
       )}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -14,7 +14,9 @@ export function GalleryLayout({ children }: GalleryLayoutProps) {
     <>
       <Header />
 
-      <main className="mx-auto max-w-[1960px] px-4 pb-4 mt-16">{children}</main>
+      <main className="mx-auto max-w-[1960px] p-4 mt-16 min-h-[calc(100dvh-113px)]">
+        {children}
+      </main>
 
       <Footer />
 

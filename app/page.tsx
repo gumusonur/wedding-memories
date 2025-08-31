@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { appConfig } from '../config';
 import type { MediaProps } from '../utils/types';
@@ -24,12 +25,6 @@ async function fetchWeddingMedia(): Promise<MediaProps[]> {
     // Get all media without guest filtering for server-side rendering
     const mediaItems = await storage.list();
     
-    // Debug: Log first few items to see URL structure
-    console.log('[DEBUG] First 3 media items from storage:');
-    mediaItems.slice(0, 3).forEach((item, index) => {
-      console.log(`[${index}] public_id: ${item.public_id}`);
-      console.log(`[${index}] resource_type: ${item.resource_type}`);
-    });
 
     // Generate blur placeholders for images
     const imageItems = mediaItems.filter((item: MediaProps) => item.resource_type === 'image');
@@ -64,6 +59,8 @@ export default async function WeddingMediaHomePage() {
   const weddingMedia = appConfig.guestIsolation ? [] : await fetchWeddingMedia();
 
   return (
-    <WeddingGallery initialMedia={weddingMedia} />
+    <Suspense fallback={<div>Loading...</div>}>
+      <WeddingGallery initialMedia={weddingMedia} />
+    </Suspense>
   );
 }

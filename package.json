@@ -1,15 +1,16 @@
 {
   "name": "wedding-memories",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "npm run validate-env && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
-    "validate-env": "node scripts/validate-env.js",
+    "validate-env": "node scripts/validate-env.cjs",
     "deploy-check": "npm run validate-env && npm run type-check && npm run lint"
   },
   "dependencies": {
@@ -42,9 +43,13 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.34.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "24.3.0",
     "@types/react": "19.1.10",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
     "eslint-config-next": "^15.4.6",

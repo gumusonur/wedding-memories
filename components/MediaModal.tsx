@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { StorageAwareMedia } from './StorageAwareMedia';
@@ -21,7 +21,6 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Play,
 } from 'lucide-react';
 import type { MediaProps } from '../utils/types';
 // Inline animation variants
@@ -50,7 +49,7 @@ interface MediaModalProps {
 export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [direction, setDirection] = useState(0);
-  const [loaded, setLoaded] = useState(false);
+  const [, setLoaded] = useState(false);
   const { t } = useI18n();
 
   // Zoom state
@@ -147,15 +146,6 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
     return Math.sqrt(
       Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
     );
-  }, []);
-
-  // Get center point between two touches
-  const getCenter = useCallback((touches: React.TouchList) => {
-    if (touches.length < 2) return { x: 0, y: 0 };
-    return {
-      x: (touches[0].clientX + touches[1].clientX) / 2,
-      y: (touches[0].clientY + touches[1].clientY) / 2,
-    };
   }, []);
 
   const changeMediaIndex = useCallback(
@@ -420,6 +410,9 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
             Wedding media {currentIndex + 1} of {items.length}
             {currentItem.guestName && ` shared by ${currentItem.guestName}`}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {currentItem.resource_type === 'video' ? 'Video' : 'Image'} viewer with navigation controls
+          </DialogDescription>
 
           <MotionConfig
             transition={{
@@ -581,7 +574,9 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                         {currentMediaProps && (
                           <StorageAwareMedia
                             {...currentMediaProps}
+                            context="modal"
                             onLoad={() => setLoaded(true)}
+                            controls={isVideo}
                             className={`${
                               isVideo
                                 ? 'w-full h-full max-w-full max-h-full object-contain rounded-lg'
@@ -624,14 +619,6 @@ export function MediaModal({ items, isOpen, initialIndex, onClose }: MediaModalP
                             })}
                             className={`${index === currentIndex ? 'brightness-110 hover:brightness-110' : 'brightness-50 contrast-125 hover:brightness-75'} h-full transform object-cover transition`}
                           />
-                          {/* Video play icon overlay for video thumbnails */}
-                          {item.resource_type === 'video' && (
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <div className="bg-black/70 rounded-full p-1 backdrop-blur-sm">
-                                <Play className="w-3 h-3 text-white" fill="white" />
-                              </div>
-                            </div>
-                          )}
                         </motion.button>
                       ))}
                     </AnimatePresence>

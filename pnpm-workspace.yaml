@@ -1,5 +1,0 @@
-ignoredBuiltDependencies:
-  - ffmpeg-static
-
-onlyBuiltDependencies:
-  - core-js

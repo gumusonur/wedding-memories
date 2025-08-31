@@ -12,7 +12,7 @@ export const appConfig = {
   brideName: 'Cathlene',
   groomName: 'Onur',
   guestIsolation: false,
-  storage: StorageProvider.S3,
+  storage: StorageProvider.Cloudinary,
   defaultLanguage: Language.English,
   supportedLanguages: [Language.English, Language.Turkish],
 };

@@ -15,7 +15,7 @@ Thank you for your interest in contributing to the Wedding Memories Gallery! Thi
 
 - Node.js 18+ 
 - pnpm package manager
-- Cloudinary account for testing image uploads
+- Storage account for testing (Cloudinary or S3/Wasabi)
 
 ### Development Setup
 
@@ -33,7 +33,8 @@ Thank you for your interest in contributing to the Wedding Memories Gallery! Thi
 3. **Environment Setup**
    ```bash
    cp .env.example .env
-   # Edit .env with your Cloudinary credentials
+   # Edit .env with your storage provider credentials (Cloudinary or S3/Wasabi)
+   # Configure storage provider in config.ts
    ```
 
 4. **Start Development Server**
@@ -45,6 +46,7 @@ Thank you for your interest in contributing to the Wedding Memories Gallery! Thi
 
 ### Code Quality Standards
 
+- **ESLint v9** with modern flat configuration and TypeScript support
 - **TypeScript strict mode** with comprehensive type safety
 - **WCAG 2.1 AA accessibility** compliance throughout
 - **Security-first validation** with input sanitization

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useGuestName, useSetGuestName } from '../store/useAppStore';
+import { useSetGuestName } from '../store/useAppStore';
 import { GuestNameInput } from './GuestNameInput';
 import { Button } from './ui/button';
 import { validateGuestName } from '../utils/validation';
@@ -16,7 +16,7 @@ export function GuestNameForm() {
   const [name, setName] = useState('');
   const [isNameValid, setIsNameValid] = useState(false);
 
-  const handleValidationChange = (isValid: boolean, error: string | null) => {
+  const handleValidationChange = (isValid: boolean, _error: string | null) => {
     setIsNameValid(isValid);
   };
 

@@ -12,16 +12,12 @@
 // Load environment variables from .env file
 try {
   require('dotenv').config();
-} catch (error) {
+} catch {
   // dotenv might not be available in production, that's fine
   console.log('Note: dotenv not available, using system environment variables');
 }
 
 // Since we can't easily require TypeScript files in Node.js, let's inline the validation logic
-const config = {
-  storage: process.env.STORAGE_PROVIDER || 'cloudinary', // Default to cloudinary
-};
-
 // Required environment variables
 const CLOUDINARY_VARS = [
   'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
@@ -70,7 +66,7 @@ function validateEnvironment() {
     if (configContent.includes('StorageProvider.S3')) {
       storageProvider = 's3';
     }
-  } catch (err) {
+  } catch {
     // Default to cloudinary if can't read config
   }
 
@@ -120,10 +116,6 @@ function logError(message) {
 
 function logSuccess(message) {
   log(`✅ ${message}`, colors.green);
-}
-
-function logWarning(message) {
-  log(`⚠️  ${message}`, colors.yellow);
 }
 
 function logInfo(message) {

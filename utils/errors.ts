@@ -18,7 +18,7 @@ export abstract class BaseApplicationError extends Error {
 
   constructor(
     message: string,
-    public readonly context?: Record<string, any>,
+    public readonly context?: Record<string, unknown>,
     public readonly originalError?: Error
   ) {
     super(message);
@@ -37,7 +37,7 @@ export abstract class BaseApplicationError extends Error {
     return {
       code: this.code,
       message: this.userMessage,
-      details: this.context?.details,
+      details: typeof this.context?.details === 'string' ? this.context.details : undefined,
     };
   }
 }
@@ -52,7 +52,7 @@ export class ValidationError extends BaseApplicationError {
   constructor(
     message: string,
     public readonly field?: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message, { ...context, field });
   }
@@ -75,7 +75,7 @@ export class UploadError extends BaseApplicationError {
   constructor(
     message: string,
     public readonly fileName?: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     originalError?: Error
   ) {
     super(message, { ...context, fileName }, originalError);
@@ -97,7 +97,7 @@ export class ConfigurationError extends BaseApplicationError {
   constructor(
     message: string,
     public readonly missingVariables?: string[],
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message, { ...context, missingVariables });
   }
@@ -117,7 +117,7 @@ export class ExternalServiceError extends BaseApplicationError {
   constructor(
     message: string,
     public readonly service: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     originalError?: Error
   ) {
     super(message, { ...context, service }, originalError);
@@ -135,7 +135,7 @@ export class ExternalServiceError extends BaseApplicationError {
 export class NetworkError extends BaseApplicationError {
   readonly code = 'NETWORK_ERROR';
 
-  constructor(message: string, context?: Record<string, any>, originalError?: Error) {
+  constructor(message: string, context?: Record<string, unknown>, originalError?: Error) {
     super(message, context, originalError);
   }
 
@@ -155,7 +155,7 @@ export class FileProcessingError extends BaseApplicationError {
     message: string,
     public readonly fileName?: string,
     public readonly operation?: 'validation' | 'thumbnail' | 'hash' | 'duplicate_check',
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     originalError?: Error
   ) {
     super(message, { ...context, fileName, operation }, originalError);
@@ -187,7 +187,7 @@ export class RateLimitError extends BaseApplicationError {
   constructor(
     message: string,
     public readonly retryAfter?: number,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message, { ...context, retryAfter });
   }
@@ -213,7 +213,7 @@ export class ErrorHandler {
    * @param context - Additional context for logging
    * @returns Object with status code, user message, and logging data
    */
-  static handleError(error: unknown, context?: Record<string, any>) {
+  static handleError(error: unknown, context?: Record<string, unknown>) {
     const logContext = { ...context, timestamp: new Date().toISOString() };
 
     if (error instanceof BaseApplicationError) {
@@ -323,7 +323,7 @@ export function getSafeErrorMessage(error: unknown): string {
  */
 export function isErrorOfType<T extends BaseApplicationError>(
   error: unknown,
-  errorClass: new (...args: any[]) => T
+  errorClass: new (...args: unknown[]) => T
 ): error is T {
   return error instanceof errorClass;
 }
@@ -335,9 +335,9 @@ export function isErrorOfType<T extends BaseApplicationError>(
  * @param context - Context for error logging
  * @returns Wrapped function with error handling
  */
-export function withErrorHandling<T extends any[], R>(
+export function withErrorHandling<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) {
   return async (...args: T): Promise<R> => {
     try {

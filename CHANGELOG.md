@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.1] - 2025-08-31
+
+### 🎉 Beta Release: Code Quality & Open Source Preparation
+
+Major code quality improvements, modern ESLint v9 configuration, TypeScript safety enhancements, and UI/UX refinements preparing for open source release.
+
+### 🚀 Added
+- **ESLint v9**: Modern flat configuration with TypeScript support
+- **Video Indicators**: Clean video camera icons for media differentiation  
+- **Enhanced Video Support**: Both Cloudinary (100MB) and S3/Wasabi support video uploads
+- **Loading States**: Improved skeleton loading animations without distracting elements
+- **Environment Validation**: Enhanced deployment checks with better error messages
+- **Accessibility**: Complete ARIA support for MediaModal dialog
+
+### 🔧 Improved
+- **TypeScript Safety**: Eliminated all `any` types, added proper type definitions
+- **Code Quality**: Removed unused variables, imports, and utility files
+- **Build Process**: Zero ESLint errors and warnings
+- **UI/UX**: Refined media loading states, video indicators, and thumbnails
+- **Error Handling**: Better type safety in error management system
+- **Validation Logic**: Separate size limits for images (10MB) and videos (100MB)
+- **Storage Flexibility**: Both Cloudinary and S3/Wasabi work seamlessly
+
+### 🗑️ Removed
+- **Legacy Files**: Cleaned up unused utilities (animationVariants.ts, downloadPhoto.ts, testing.ts)
+- **ESLint Legacy**: Removed old ESLintRC configuration
+- **Code Cleanup**: Removed console.log statements and unused code
+
+### 🐛 Fixed
+- **Module System**: Proper ES modules configuration with .mjs and .cjs files
+- **npm Warnings**: Resolved configuration conflicts
+- **TypeScript Errors**: Fixed all type checking issues  
+- **Context Handling**: Improved MediaModal video behavior
+- **Video Validation**: Fixed video upload support for both storage providers
+- **Accessibility**: Added missing DialogDescription to prevent warnings
+
+### 📈 Performance
+- **Storage Options**: Cloudinary for performance (CDN), Wasabi for cost-effectiveness
+- **Media Optimization**: Proper video/image handling for each storage provider
+
 ## [0.1.0-alpha.4] - 2025-08-26
 
 ### 🎉 Alpha Release: Complete Video Architecture Overhaul

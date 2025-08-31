@@ -25,7 +25,15 @@ export class S3Service implements StorageService {
     this.bucket = bucket;
 
     // Configure S3 client with optional custom endpoint for Wasabi
-    const clientConfig: any = {
+    const clientConfig: {
+      region: string;
+      credentials: {
+        accessKeyId: string;
+        secretAccessKey: string;
+      };
+      endpoint?: string;
+      forcePathStyle?: boolean;
+    } = {
       region,
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -86,7 +94,6 @@ export class S3Service implements StorageService {
 
       // Return upload result with metadata
       const fullUrl = await this.getPublicUrl(key);
-      console.log(`[DEBUG S3Service] upload() - Generated presigned URL: ${fullUrl.substring(0, 100)}...`);
       return {
         url: fullUrl,
         public_id: fullUrl, // Use presigned URL as public_id for frontend
@@ -137,8 +144,6 @@ export class S3Service implements StorageService {
       });
 
       const response = await this.s3Client.send(command);
-      console.log(`[S3] Searching with sanitized guest name "${guestName}" -> "${sanitizedGuestName}"`);
-      console.log(`[S3] Found ${response.Contents?.length || 0} objects with prefix: ${prefix}`);
 
       // Transform S3 objects to MediaProps format
       const mediaItems: MediaProps[] = [];
@@ -161,11 +166,8 @@ export class S3Service implements StorageService {
             return 'image';
           };
 
-          const isVideo = resourceType(format) === 'video';
-          
           // Generate presigned URL for this object
           const presignedUrl = await this.getPublicUrl(object.Key);
-          console.log(`[DEBUG S3Service] list() - Generated presigned URL for ${object.Key}: ${presignedUrl.substring(0, 100)}...`);
           
           // Return media item with presigned URL
           return {
@@ -243,7 +245,12 @@ export class S3Service implements StorageService {
    * @param key - S3 object key
    * @returns Object metadata
    */
-  async getFileMetadata(key: string): Promise<any> {
+  async getFileMetadata(key: string): Promise<{
+    ContentLength?: number;
+    ContentType?: string;
+    LastModified?: Date;
+    ETag?: string;
+  } | null> {
     const command = new HeadObjectCommand({
       Bucket: this.bucket,
       Key: key,

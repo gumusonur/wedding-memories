@@ -13,7 +13,7 @@ interface GuestNameInputProps {
   autoFocus?: boolean;
   disabled?: boolean;
   onKeyDown?: (e: React.KeyboardEvent) => void;
-  t?: (key: string, options?: any) => string;
+  t?: (key: string, options?: Record<string, string | number>) => string;
 }
 
 /**
@@ -38,7 +38,7 @@ export const GuestNameInput = forwardRef<HTMLInputElement, GuestNameInputProps>(
   t,
 }, ref) => {
   const [error, setError] = useState<string | null>(null);
-  const [isValid, setIsValid] = useState(true);
+  const [, setIsValid] = useState(true);
 
   // Validate name whenever value changes
   useEffect(() => {

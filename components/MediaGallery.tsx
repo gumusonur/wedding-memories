@@ -40,21 +40,12 @@ function formatUploadDate(dateString: string, locale: string = 'en-US'): string 
       hour: '2-digit',
       minute: '2-digit',
     });
-  } catch (error) {
+  } catch {
     console.warn('Invalid date format:', dateString);
     return 'Date unavailable';
   }
 }
 
-function generateMediaAltText(guestName?: string, mediaIndex?: number): string {
-  const coupleNames = `${appConfig.brideName} & ${appConfig.groomName}`;
-
-  if (guestName && guestName !== 'Unknown Guest') {
-    return `Wedding media shared by ${guestName} - ${coupleNames} wedding memories`;
-  }
-
-  return `Wedding media ${mediaIndex ? `#${mediaIndex + 1}` : ''} - ${coupleNames} wedding memories`;
-}
 
 function handleMediaKeyNavigation(
   event: React.KeyboardEvent,
@@ -120,8 +111,8 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
         } else {
           console.error('Failed to refetch media:', response.statusText);
         }
-      } catch (error) {
-        console.error('Network error while refetching media:', error);
+      } catch (_error) {
+        console.error('Network error while refetching media:', _error);
       } finally {
         if (showLoading) {
           setIsLoading(false);
@@ -151,7 +142,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
     [openModal]
   );
 
-  const handleValidationChange = (isValid: boolean, error: string | null) => {
+  const handleValidationChange = (isValid: boolean, _error: string | null) => {
     setIsNameValid(isValid);
   };
 
@@ -173,13 +164,13 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
         title: t('success.welcome'),
         description: t('success.welcomeDescription', { name: sanitizedName }),
       });
-    } catch (error) {
+    } catch (_error) {
       // This shouldn't happen if validation is working correctly in GuestNameInput
       toast({
         variant: 'destructive',
         title: t('errors.validationError'),
         description:
-          error instanceof Error ? error.message : t('errors.validationErrorDescription'),
+          _error instanceof Error ? _error.message : t('errors.validationErrorDescription'),
       });
     }
   };
@@ -270,7 +261,7 @@ export function MediaGallery({ initialMedia }: MediaGalleryProps) {
   if (media.length === 0 && !isLoading) {
     return (
       <div
-        className="absolute top-1/2 left-1/2 -translate-1/2 w-full text-center text-muted-foreground"
+        className="absolute top-1/2 left-1/2 -translate-1/2 w-full px-6 text-center text-muted-foreground"
         role="status"
         aria-live="polite"
       >

@@ -3,6 +3,18 @@ import generateBlurPlaceholder from '../utils/generateBlurPlaceholder';
 import { StorageService, UploadResult, VideoUploadData, PresignedUploadResponse, VideoMetadata } from './StorageService';
 import type { MediaProps } from '../utils/types';
 
+interface CloudinaryResource {
+  public_id: string;
+  height?: number;
+  width?: number;
+  format: string;
+  resource_type: string;
+  created_at: string;
+  context?: {
+    guest?: string;
+  };
+}
+
 /**
  * Cloudinary implementation of the StorageService interface.
  * 
@@ -12,6 +24,14 @@ import type { MediaProps } from '../utils/types';
  */
 export class CloudinaryService implements StorageService {
   private readonly baseFolder = 'wedding';
+
+  constructor() {
+    cloudinary.config({
+      cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+  }
 
   /**
    * Uploads a file to Cloudinary with guest-specific folder organization.
@@ -81,12 +101,7 @@ export class CloudinaryService implements StorageService {
 
       // Transform to ImageProps format
       const transformedMedia: MediaProps[] = searchResults.resources.map(
-        (resource: any, index: number) => {
-          console.log(`[DEBUG CloudinaryService] Resource ${index}: public_id="${resource.public_id}", context=${JSON.stringify(resource.context)}`);
-          
-          // Test direct Cloudinary URL
-          const testUrl = `https://res.cloudinary.com/dlegcbcvj/image/upload/${resource.public_id}`;
-          console.log(`[DEBUG CloudinaryService] Test URL: ${testUrl}`);
+        (resource: CloudinaryResource, index: number) => {
           
           return {
             id: index,
@@ -106,7 +121,7 @@ export class CloudinaryService implements StorageService {
         // Only generate blur for images
         if (mediaItem.resource_type === 'image') {
           // Find the original resource for this image
-          const originalResource = searchResults.resources.find((resource: any) => 
+          const originalResource = searchResults.resources.find((resource: CloudinaryResource) => 
             resource.public_id === mediaItem.public_id
           );
           return generateBlurPlaceholder(originalResource);
@@ -172,7 +187,7 @@ export class CloudinaryService implements StorageService {
    * Cloudinary doesn't support presigned URLs like S3.
    * This method throws an error to indicate videos should be uploaded via uploadVideo method.
    */
-  async generateVideoUploadUrl(options: VideoUploadData): Promise<PresignedUploadResponse> {
+  async generateVideoUploadUrl(_options: VideoUploadData): Promise<PresignedUploadResponse> {
     throw new Error('Cloudinary does not support presigned URLs. Use direct upload via uploadVideo method instead, or switch to S3 storage for presigned URL uploads.');
   }
 

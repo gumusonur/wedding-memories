@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, Sun, Moon, Monitor, Heart } from 'lucide-react';
+import { Settings, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useI18n } from './I18nProvider';
 import { appConfig, Language } from '../config';

@@ -7,7 +7,7 @@ import { appConfig, StorageProvider } from '../config';
 export class MediaUrlService {
   /**
    * Gets the optimized media URL for display.
-   * 
+   *
    * @param publicId - The media public ID or full URL
    * @param resourceType - The type of media (image or video)
    * @param width - Desired width
@@ -31,7 +31,7 @@ export class MediaUrlService {
 
   /**
    * Gets the thumbnail URL for preview purposes.
-   * 
+   *
    * @param publicId - The media public ID or full URL
    * @param resourceType - The type of media (image or video)
    * @returns Thumbnail URL
@@ -46,19 +46,20 @@ export class MediaUrlService {
 
   /**
    * Gets the full resolution URL for modal viewing.
-   * 
+   *
    * @param publicId - The media public ID or full URL
    * @param resourceType - The type of media (image or video)
    * @returns Full resolution URL
    */
   static getFullUrl(publicId: string, resourceType: 'image' | 'video'): string {
     if (appConfig.storage === StorageProvider.Cloudinary) {
-      if (resourceType === 'video') {
-        // For videos, use simple URL without complex transformations
-        return MediaUrlService.getCloudinaryUrl(publicId, resourceType, undefined, undefined, 'auto');
-      } else {
-        return MediaUrlService.getCloudinaryUrl(publicId, resourceType, 1920, 1080, 'high');
-      }
+      return MediaUrlService.getCloudinaryUrl(
+        publicId,
+        resourceType,
+        undefined,
+        undefined,
+        resourceType === 'video' ? 'auto' : 'high'
+      );
     } else {
       return MediaUrlService.getS3Url(publicId);
     }
@@ -66,7 +67,7 @@ export class MediaUrlService {
 
   /**
    * Gets the download URL for a media item (original quality).
-   * 
+   *
    * @param publicId - The media public ID or full URL
    * @param resourceType - The type of media (image or video)
    * @param format - The media format (jpg, mp4, etc.)
@@ -76,7 +77,7 @@ export class MediaUrlService {
     if (appConfig.storage === StorageProvider.Cloudinary) {
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       if (!cloudName) return publicId;
-      
+
       // For Cloudinary, return original quality URL
       if (publicId.startsWith('http')) return publicId;
       const mediaTypePath = resourceType === 'video' ? 'video' : 'image';
@@ -89,7 +90,7 @@ export class MediaUrlService {
 
   /**
    * Gets the external link URL for viewing the media in a new tab.
-   * 
+   *
    * @param publicId - The media public ID or full URL
    * @param resourceType - The type of media (image or video)
    * @param format - The media format (jpg, mp4, etc.)
@@ -99,7 +100,7 @@ export class MediaUrlService {
     if (appConfig.storage === StorageProvider.Cloudinary) {
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       if (!cloudName) return publicId;
-      
+
       // For Cloudinary, return high-quality URL
       if (publicId.startsWith('http')) return publicId;
       const mediaTypePath = resourceType === 'video' ? 'video' : 'image';
@@ -134,16 +135,16 @@ export class MediaUrlService {
       return publicId;
     }
 
-    let transformations = [];
-    
+    const transformations = [];
+
     // Map named quality values to Cloudinary numeric values
     const qualityMap: { [key: string]: string } = {
-      'medium': '80', 
-      'high': '90',
-      'low': '60'
+      medium: '80',
+      high: '90',
+      low: '60',
     };
     const finalQuality = qualityMap[quality] || quality;
-    
+
     if (resourceType === 'video') {
       // Simplified video transformations
       if (width && height) {
@@ -162,7 +163,7 @@ export class MediaUrlService {
 
     const transformationString = transformations.length > 0 ? transformations.join(',') + '/' : '';
     const mediaTypePath = resourceType === 'video' ? 'video' : 'image';
-    
+
     return `https://res.cloudinary.com/${cloudName}/${mediaTypePath}/upload/${transformationString}${publicId}`;
   }
 
@@ -185,7 +186,7 @@ export class MediaUrlService {
     // Note: This should rarely happen with new presigned URL system
     const bucket = process.env.NEXT_PUBLIC_S3_BUCKET;
     const endpoint = process.env.NEXT_PUBLIC_S3_ENDPOINT;
-    
+
     if (!bucket) {
       console.warn('S3 bucket not configured');
       return publicId;
@@ -201,7 +202,6 @@ export class MediaUrlService {
       return `https://${bucket}.s3.${region}.amazonaws.com/${publicId}`;
     }
   }
-
 
   /**
    * Checks if the current storage provider supports media optimization.

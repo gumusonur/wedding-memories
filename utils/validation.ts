@@ -43,7 +43,8 @@ export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.webm'] as c
 /**
  * Maximum file size for uploads (10MB).
  */
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for images
+export const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB for videos
 
 /**
  * Maximum guest name length.
@@ -75,13 +76,18 @@ export function validateMediaFile(file: File, allowVideos = false, enforceFileSi
   }
 
   // Check file size only if enforced (Cloudinary has limits, S3/Wasabi doesn't)
-  if (enforceFileSize && file.size > MAX_FILE_SIZE) {
-    const sizeMB = Math.round(file.size / (1024 * 1024));
-    const maxSizeMB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
-    throw new ValidationError(
-      `File size (${sizeMB}MB) exceeds maximum allowed size of ${maxSizeMB}MB`,
-      'file'
-    );
+  if (enforceFileSize) {
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_FILE_SIZE;
+    
+    if (file.size > maxSize) {
+      const sizeMB = Math.round(file.size / (1024 * 1024));
+      const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+      throw new ValidationError(
+        `File size (${sizeMB}MB) exceeds maximum allowed size of ${maxSizeMB}MB`,
+        'file'
+      );
+    }
   }
 
   // Check MIME type first
@@ -89,14 +95,15 @@ export function validateMediaFile(file: File, allowVideos = false, enforceFileSi
     const lowerType = file.type.toLowerCase();
     
     // Check image types
-    if (SUPPORTED_IMAGE_TYPES.includes(lowerType as any)) {
+    if (SUPPORTED_IMAGE_TYPES.includes(lowerType as (typeof SUPPORTED_IMAGE_TYPES)[number])) {
       return true;
     }
     
     // Check video types if allowed
-    if (allowVideos && SUPPORTED_VIDEO_TYPES.includes(lowerType as any)) {
+    if (allowVideos && SUPPORTED_VIDEO_TYPES.includes(lowerType as (typeof SUPPORTED_VIDEO_TYPES)[number])) {
       return true;
     }
+    
   }
 
   // Fallback: check file extension for Safari compatibility
@@ -161,7 +168,7 @@ export function validateVideoFile(file: File): { isValid: boolean; error?: strin
     // Check MIME type first
     if (file.type) {
       const lowerType = file.type.toLowerCase();
-      if (SUPPORTED_VIDEO_TYPES.includes(lowerType as any)) {
+      if (SUPPORTED_VIDEO_TYPES.includes(lowerType as (typeof SUPPORTED_VIDEO_TYPES)[number])) {
         return { isValid: true };
       }
     }
@@ -236,7 +243,7 @@ export function sanitizeToAscii(text: string): string {
  * @returns Trimmed and sanitized guest name
  * @throws {ValidationError} If guest name is invalid
  */
-export function validateGuestName(guestName: unknown, t?: (key: string, options?: any) => string): string {
+export function validateGuestName(guestName: unknown, t?: (key: string, options?: Record<string, string | number>) => string): string {
   if (typeof guestName !== 'string') {
     throw new ValidationError(
       t ? t('errors.nameRequiredDescription') : 'Please enter your name as text',
@@ -517,7 +524,7 @@ export function isValidFile(value: unknown): value is File {
  * @param t - Optional translation function for i18n support
  * @returns Error message if invalid, null if valid
  */
-export function validateGuestNameForUI(guestName: string, t?: (key: string, options?: any) => string): string | null {
+export function validateGuestNameForUI(guestName: string, t?: (key: string, options?: Record<string, string | number>) => string): string | null {
   try {
     validateGuestName(guestName, t);
     return null;
